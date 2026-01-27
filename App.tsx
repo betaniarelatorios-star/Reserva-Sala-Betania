@@ -145,6 +145,8 @@ const App: React.FC = () => {
       <main className="flex-1 overflow-y-auto px-4 py-8 space-y-6 scrollbar-hide bg-[#F8FAFC]">
         {messages.map((msg, index) => {
           const isLast = index === messages.length - 1;
+          const isForm = msg.type === 'reservation_form';
+          
           return (
             <div 
               key={msg.id} 
@@ -158,12 +160,8 @@ const App: React.FC = () => {
               )}
               
               <div className={`flex flex-col gap-1 max-w-[85%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                <div className={`px-4 py-3 rounded-2xl text-[14px] leading-relaxed shadow-sm border ${
-                  msg.role === 'user' 
-                    ? 'bg-blue-600 text-white rounded-tr-none border-blue-700' 
-                    : 'bg-white text-slate-700 rounded-tl-none border-slate-200'
-                }`}>
-                  {msg.content.split('\n').map((line, i) => (
+                <div className={`${isForm ? '' : 'px-4 py-3 rounded-2xl border shadow-sm ' + (msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none border-blue-700' : 'bg-white text-slate-700 rounded-tl-none border-slate-200')} text-[14px] leading-relaxed`}>
+                  {!isForm && msg.content.split('\n').map((line, i) => (
                     <React.Fragment key={i}>
                       {line}
                       {i < msg.content.split('\n').length - 1 && <br />}
@@ -178,12 +176,17 @@ const App: React.FC = () => {
                     </div>
                   )}
 
-                  {msg.type === 'reservation_form' && msg.payload?.room && (
-                    <ReservationForm 
-                      room={msg.payload.room} 
-                      onSuccess={handleReservationSuccess}
-                      onSelectAlternative={handleRoomSelect}
-                    />
+                  {isForm && msg.payload?.room && (
+                    <div className="space-y-4">
+                      <div className="px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-700 shadow-sm rounded-tl-none">
+                        {msg.content}
+                      </div>
+                      <ReservationForm 
+                        room={msg.payload.room} 
+                        onSuccess={handleReservationSuccess}
+                        onSelectAlternative={handleRoomSelect}
+                      />
+                    </div>
                   )}
                   
                   {msg.type === 'status' && msg.payload?.status === 'success' && msg.payload?.reservation && (
