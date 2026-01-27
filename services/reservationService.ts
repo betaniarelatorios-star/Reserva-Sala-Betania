@@ -51,16 +51,18 @@ export class ReservationService {
   }
 
   static async createReservation(reservation: Reservation): Promise<Reservation> {
-    // 1. Cria a reserva
+    // 1. Cria a reserva no banco
     const created = await this.fetchSupabase('POST', 'reservas', reservation);
     const newId = created[0]?.id;
 
-    // 2. Se tiver ID, busca novamente para garantir que pegamos campos gerados (como link_agenda)
+    // 2. Busca novamente com um delay maior para capturar o link_agenda gerado por triggers
     if (newId) {
-      // Pequeno delay para garantir que triggers de banco tenham processado
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Aumentado para 1.5 segundos para garantir que o processo de backend termine
+      await new Promise(resolve => setTimeout(resolve, 1500));
       const query = `reservas?id=eq.${newId}`;
       const freshData = await this.fetchSupabase('GET', query);
+      
+      console.log("Dados atualizados da reserva:", freshData[0]); // Para depuração no console
       return freshData[0] || created[0];
     }
 
