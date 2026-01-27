@@ -59,7 +59,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
     return null;
   };
 
-  const formatTime = (timeStr: string) => timeStr.split(':').slice(0, 2).join(':');
+  // Melhorado para ser robusto contra valores undefined
+  const formatTime = (timeStr: string) => timeStr ? timeStr.split(':').slice(0, 2).join(':') : '--:--';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,7 +85,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
       if (conflict) {
         setError(
           <span className="text-[12px] leading-snug">
-            A {room.name} já possui uma reserva para este período realizada por <span className="font-bold text-red-700">{conflict.nome}</span> até às <span className="font-bold text-red-700">{formatTime(conflict.fim)}</span>.
+            A {room.name} já possui uma reserva para este período realizada por <span className="font-bold text-red-700">{conflict.nome || 'alguém'}</span> até às <span className="font-bold text-red-700">{formatTime(conflict.fim)}</span>.
           </span>
         );
         
@@ -117,7 +118,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
 
   return (
     <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      {/* Indicador de Título Minimalista */}
       <div className="flex items-center gap-3">
         <div className="w-1.5 h-6 bg-slate-900 rounded-full"></div>
         <div className="flex flex-col">
@@ -127,7 +127,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Responsável */}
         <div className="space-y-1.5">
           <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">
             <User className="w-3 h-3" /> Responsável
@@ -142,7 +141,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
           />
         </div>
 
-        {/* Data */}
         <div className="space-y-1.5">
           <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">
             <Calendar className="w-3 h-3" /> Data
@@ -157,7 +155,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
           />
         </div>
 
-        {/* Horários - Melhorado para mobile (grid mais espaçado) */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">
@@ -185,7 +182,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
           </div>
         </div>
 
-        {/* Descrição */}
         <div className="space-y-1.5">
           <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">
             <FileText className="w-3 h-3" /> Motivo da Reunião
@@ -199,7 +195,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
           />
         </div>
 
-        {/* Erro e Sugestões */}
         {error && (
           <div className="p-4 bg-red-50 border border-red-100 rounded-[22px] space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex gap-3">
@@ -208,29 +203,9 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
                 {error}
               </div>
             </div>
-            
-            {alternatives.length > 0 && (
-              <div className="pt-3 border-t border-red-200/30 space-y-2">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Alternativas livres:</p>
-                <div className="grid grid-cols-1 gap-2">
-                  {alternatives.map(alt => (
-                    <button
-                      key={alt.id}
-                      type="button"
-                      onClick={() => onSelectAlternative?.(alt)}
-                      className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl transition-all group active:scale-[0.98] shadow-sm"
-                    >
-                      <span className="text-[12px] font-bold text-slate-700">{alt.name}</span>
-                      <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-all" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
 
-        {/* Botão Principal */}
         <button 
           type="submit"
           disabled={loading}

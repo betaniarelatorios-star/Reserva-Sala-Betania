@@ -8,8 +8,9 @@ interface ReservationSuccessCardProps {
 }
 
 const ReservationSuccessCard: React.FC<ReservationSuccessCardProps> = ({ reservation }) => {
-  const formattedDate = reservation.data.split('-').reverse().join('/');
-  const formatTime = (time: string) => time.split(':').slice(0, 2).join(':');
+  // Verificação de segurança para evitar erro de .split() em undefined
+  const formattedDate = reservation?.data ? reservation.data.split('-').reverse().join('/') : '--/--/----';
+  const formatTime = (time: string) => time ? time.split(':').slice(0, 2).join(':') : '--:--';
 
   return (
     <div className="w-full bg-white rounded-[28px] border border-slate-100 shadow-xl overflow-hidden mt-2 animate-in zoom-in-95 duration-500">
@@ -28,7 +29,7 @@ const ReservationSuccessCard: React.FC<ReservationSuccessCardProps> = ({ reserva
           </div>
           <div className="flex flex-col">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Sala Selecionada</span>
-            <span className="text-[15px] font-bold text-slate-800">{reservation.sala}</span>
+            <span className="text-[15px] font-bold text-slate-800">{reservation?.sala || 'Sala'}</span>
           </div>
         </div>
 
@@ -50,7 +51,7 @@ const ReservationSuccessCard: React.FC<ReservationSuccessCardProps> = ({ reserva
             </div>
             <div className="flex flex-col">
               <span className="text-[9px] font-bold text-slate-400 uppercase">Horário</span>
-              <span className="text-[13px] font-semibold text-slate-700">{formatTime(reservation.inicio)} - {formatTime(reservation.fim)}</span>
+              <span className="text-[13px] font-semibold text-slate-700">{formatTime(reservation?.inicio)} - {formatTime(reservation?.fim)}</span>
             </div>
           </div>
         </div>
@@ -61,7 +62,7 @@ const ReservationSuccessCard: React.FC<ReservationSuccessCardProps> = ({ reserva
           </div>
           <div className="flex flex-col">
             <span className="text-[9px] font-bold text-slate-400 uppercase">Responsável</span>
-            <span className="text-[13px] font-semibold text-slate-800">{reservation.nome}</span>
+            <span className="text-[13px] font-semibold text-slate-800">{reservation?.nome || 'Usuário'}</span>
           </div>
         </div>
       </div>
