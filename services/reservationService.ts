@@ -28,15 +28,16 @@ export class ReservationService {
     return text ? JSON.parse(text) : [];
   }
 
-  static async checkAvailability(roomName: string, date: string, start: string, end: string): Promise<boolean> {
+  static async checkAvailability(roomName: string, date: string, start: string, end: string): Promise<Reservation | null> {
     const query = `reservas?sala=eq.${encodeURIComponent(roomName)}&data=eq.${date}`;
     const existing: Reservation[] = await this.fetchSupabase('GET', query);
 
-    const isOverlapping = existing.some(res => {
+    const conflict = existing.find(res => {
+      // Logic for overlap: (StartA < EndB) and (EndA > StartB)
       return (start < res.fim && end > res.inicio);
     });
 
-    return !isOverlapping;
+    return conflict || null;
   }
 
   static async getAvailableRooms(date: string, start: string, end: string): Promise<Room[]> {

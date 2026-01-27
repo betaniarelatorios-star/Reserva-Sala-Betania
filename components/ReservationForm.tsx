@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
-import { Send, AlertCircle, ArrowRight } from 'lucide-react';
+import { Send, AlertCircle, ArrowRight, Clock } from 'lucide-react';
 import { ReservationService } from '../services/reservationService.ts';
-import { Room } from '../types.ts';
+import { Room, Reservation } from '../types.ts';
 
 interface ReservationFormProps {
   room: Room;
@@ -12,7 +12,7 @@ interface ReservationFormProps {
 
 const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSelectAlternative }) => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | React.ReactNode | null>(null);
   const [alternatives, setAlternatives] = useState<Room[]>([]);
   const [today] = useState(new Date().toISOString().split('T')[0]);
   
@@ -59,6 +59,8 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
     return null;
   };
 
+  const formatTime = (timeStr: string) => timeStr.split(':').slice(0, 2).join(':');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -72,15 +74,20 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
 
     setLoading(true);
     try {
-      const isAvailable = await ReservationService.checkAvailability(
+      const conflict = await ReservationService.checkAvailability(
         room.name,
         formData.date,
         formData.start,
         formData.end
       );
 
-      if (!isAvailable) {
-        setError(`A ${room.name} já possui uma reserva para este período.`);
+      if (conflict) {
+        setError(
+          <span className="text-[12px] leading-snug">
+            A {room.name} já possui uma reserva para este período realizada por <span className="font-bold text-red-700">{conflict.nome}</span> até às <span className="font-bold text-red-700">{formatTime(conflict.fim)}</span>.
+          </span>
+        );
+        
         const altRooms = await ReservationService.getAvailableRooms(
           formData.date,
           formData.start,
@@ -179,25 +186,31 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
         </div>
 
         {error && (
-          <div className="p-3 bg-red-50 border border-red-100 rounded-xl space-y-2">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-3.5 h-3.5 text-red-500" />
-              <p className="text-[11px] text-red-600 font-bold uppercase">{error}</p>
+          <div className="p-4 bg-red-50/80 border border-red-100 rounded-[24px] space-y-3 shadow-sm">
+            <div className="flex gap-3">
+              <div className="p-1.5 h-fit bg-red-500 rounded-full flex-shrink-0">
+                <AlertCircle className="w-3 h-3 text-white" />
+              </div>
+              <div className="text-red-600 font-medium">
+                {error}
+              </div>
             </div>
             
             {alternatives.length > 0 && (
-              <div className="pt-2 border-t border-red-100 space-y-1.5">
-                <p className="text-[9px] font-bold text-slate-400 uppercase">Salas Disponíveis neste horário:</p>
-                <div className="flex flex-col gap-1.5">
+              <div className="pt-3 border-t border-red-100/50 space-y-2.5">
+                <div className="bg-blue-50 px-3 py-1.5 rounded-xl inline-block">
+                   <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Salas Disponíveis neste horário</p>
+                </div>
+                <div className="grid grid-cols-1 gap-2">
                   {alternatives.map(alt => (
                     <button
                       key={alt.id}
                       type="button"
                       onClick={() => onSelectAlternative?.(alt)}
-                      className="flex items-center justify-between p-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition-colors group"
+                      className="flex items-center justify-between p-3.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl transition-all group shadow-sm active:scale-[0.98]"
                     >
-                      <span className="text-[11px] font-bold text-slate-700">{alt.name}</span>
-                      <ArrowRight className="w-3 h-3 text-slate-300 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />
+                      <span className="text-[12px] font-bold text-slate-700">Sala {alt.name.replace('Sala ', '')}</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-900 group-hover:translate-x-0.5 transition-all" />
                     </button>
                   ))}
                 </div>
@@ -209,7 +222,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
         <button 
           type="submit"
           disabled={loading}
-          className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg disabled:bg-slate-300 disabled:shadow-none"
+          className="w-full bg-[#1e293b] hover:bg-slate-800 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg disabled:bg-slate-300 disabled:shadow-none mt-2"
         >
           {loading ? (
             <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
