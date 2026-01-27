@@ -7,7 +7,6 @@ export class ChatService {
   private ai: GoogleGenAI;
 
   constructor() {
-    // Usando a chave injetada via environment conforme diretrizes
     this.ai = new GoogleGenAI({ apiKey: (process.env.API_KEY as string) });
   }
 
@@ -15,9 +14,9 @@ export class ChatService {
     name: "verificar_disponibilidade",
     parameters: {
       type: Type.OBJECT,
-      description: "Verifica se uma sala específica está disponível em uma data e horário.",
+      description: "Verifica se uma sala específica está disponível em uma data e horário consultando o banco de dados.",
       properties: {
-        sala: { type: Type.STRING, description: "Nome da sala" },
+        sala: { type: Type.STRING, description: "Nome exato da sala" },
         data: { type: Type.STRING, description: "Data no formato YYYY-MM-DD" },
         inicio: { type: Type.STRING, description: "Horário de início HH:mm" },
         fim: { type: Type.STRING, description: "Horário de término HH:mm" },
@@ -37,36 +36,45 @@ export class ChatService {
         },
       });
 
-      // Se o modelo quiser chamar uma função para consultar o banco
-      if (response.functionCalls) {
-        for (const fc of response.functionCalls) {
-          if (fc.name === "verificar_disponibilidade") {
-            const { sala, data, inicio, fim } = fc.args as any;
-            const isAvailable = await ReservationService.checkAvailability(sala, data, inicio, fim);
-            
-            // Retorna o resultado para o modelo processar a resposta final
-            const secondResponse = await this.ai.models.generateContent({
-              model: "gemini-3-flash-preview",
-              contents: [
-                { role: "user", parts: [{ text: message }] },
-                { role: "model", parts: [
-                  { functionCall: { name: fc.name, args: fc.args, id: fc.id } }
-                ]},
-                { role: "user", parts: [
-                  { functionResponse: { name: fc.name, id: fc.id, response: { disponivel: isAvailable } } }
-                ]}
-              ],
-              config: { systemInstruction: SYSTEM_PROMPT }
-            });
-            return { text: secondResponse.text };
-          }
+      if (response.functionCalls && response.functionCalls.length > 0) {
+        const fc = response.functionCalls[0];
+        if (fc.name === "verificar_disponibilidade") {
+          const { sala, data, inicio, fim } = fc.args as any;
+          
+          // Lógica de verificação Real no Banco
+          const isAvailable = await ReservationService.checkAvailability(sala, data, inicio, fim);
+          
+          // Segunda chamada para a IA processar o resultado da verificação
+          const secondResponse = await this.ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: [
+              { role: "user", parts: [{ text: message }] },
+              { role: "model", parts: [
+                { functionCall: { name: fc.name, args: fc.args, id: fc.id } }
+              ]},
+              { role: "user", parts: [
+                { 
+                  functionResponse: { 
+                    name: fc.name, 
+                    id: fc.id, 
+                    response: { 
+                      disponivel: isAvailable,
+                      mensagem_sistema: isAvailable ? "Sala disponível." : "Sala ocupada no período solicitado."
+                    } 
+                  } 
+                }
+              ]
+            ],
+            config: { systemInstruction: SYSTEM_PROMPT }
+          });
+          return { text: secondResponse.text };
         }
       }
 
       return { text: response.text };
     } catch (error) {
       console.error("Erro na IA:", error);
-      return { text: "Desculpe, tive um problema ao processar sua solicitação. Pode repetir?" };
+      return { text: "Erro técnico ao consultar disponibilidade. Por favor, utilize o botão de Salas para reservar manualmente." };
     }
   }
 }
