@@ -18,7 +18,7 @@ const App: React.FC = () => {
     {
       id: '1',
       role: 'assistant',
-      content: `Olá! Sou seu assistente de reservas. Como posso ajudar você hoje?\n\nEscolha uma das salas abaixo para começar ou digite sua solicitação.`,
+      content: `Olá! Sou seu assistente de reservas. Como posso ajudar você hoje?`,
       timestamp: new Date(),
       type: 'text',
       payload: { showRooms: true }
@@ -160,7 +160,7 @@ const App: React.FC = () => {
                 ))}
 
                 {msg.payload?.showRooms && (
-                  <div className="mt-4 space-y-3">
+                  <div className="mt-4 space-y-2">
                     {ROOMS.map(room => (
                       <RoomCardInline key={room.id} room={room} onSelect={handleRoomSelect} />
                     ))}
