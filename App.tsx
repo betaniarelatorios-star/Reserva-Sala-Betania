@@ -3,8 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Send, 
   Bot,
-  LayoutGrid,
-  CheckCircle2
+  LayoutGrid
 } from 'lucide-react';
 import { Message, Room, Reservation } from './types.ts';
 import { ChatService } from './services/geminiService.ts';
@@ -12,6 +11,7 @@ import { ROOMS } from './constants.ts';
 import RoomSelectionPanel from './components/RoomSelectionPanel.tsx';
 import RoomCardInline from './components/RoomCardInline.tsx';
 import ReservationForm from './components/ReservationForm.tsx';
+import ReservationSuccessCard from './components/ReservationSuccessCard.tsx';
 
 const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
@@ -39,12 +39,9 @@ const App: React.FC = () => {
   useEffect(() => {
     const lastMsg = messages[messages.length - 1];
     
-    // Se a última mensagem for um formulário de reserva, rola para o TOPO dela
-    // para que o texto "Entendido. Por favor..." fique visível.
-    if (lastMsg?.type === 'reservation_form') {
+    if (lastMsg?.type === 'reservation_form' || lastMsg?.type === 'status' && lastMsg.payload?.reservation) {
       lastMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } 
-    // Caso contrário, mantém a lógica de rolar para o final se houver mais de uma mensagem
     else if (messages.length > 1 || isTyping) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
@@ -72,16 +69,13 @@ const App: React.FC = () => {
   };
 
   const handleReservationSuccess = (res: Reservation) => {
-    const formattedDate = res.data.split('-').reverse().join('/');
-    const formatTime = (timeStr: string) => timeStr.split(':').slice(0, 2).join(':');
-    
     const successMsg: Message = {
       id: Date.now().toString(),
       role: 'assistant',
-      content: `Sua reserva foi confirmada com sucesso. ✅\n\nSala: ${res.sala}\nResponsável: ${res.nome}\nData: ${formattedDate}\nHorário: ${formatTime(res.inicio)} até ${formatTime(res.fim)}`,
+      content: 'Sua reserva foi confirmada com sucesso! Confira os detalhes abaixo:',
       timestamp: new Date(),
       type: 'status',
-      payload: { status: 'success' }
+      payload: { status: 'success', reservation: res }
     };
     setMessages(prev => [...prev, successMsg]);
   };
@@ -192,10 +186,8 @@ const App: React.FC = () => {
                     />
                   )}
                   
-                  {msg.type === 'status' && msg.payload?.status === 'success' && (
-                    <div className="mt-4 flex items-center gap-2 text-emerald-600 font-bold text-[11px] uppercase tracking-wider bg-emerald-50 p-2 rounded-lg border border-emerald-100">
-                      <CheckCircle2 className="w-4 h-4" /> Reserva Finalizada
-                    </div>
+                  {msg.type === 'status' && msg.payload?.status === 'success' && msg.payload?.reservation && (
+                    <ReservationSuccessCard reservation={msg.payload.reservation} />
                   )}
                 </div>
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter px-1 mt-1">
