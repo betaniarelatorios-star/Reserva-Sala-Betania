@@ -36,7 +36,11 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Só rola para o final se houver mais de uma mensagem ou se a IA estiver digitando.
+    // Isso evita que a saudação inicial seja escondida no primeiro carregamento.
+    if (messages.length > 1 || isTyping) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages, isTyping]);
 
   const handleRoomSelect = (room: Room) => {
@@ -137,7 +141,7 @@ const App: React.FC = () => {
         </button>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-4 py-6 space-y-6 scrollbar-hide bg-[#F8FAFC]">
+      <main className="flex-1 overflow-y-auto px-4 py-8 space-y-6 scrollbar-hide bg-[#F8FAFC]">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
             {msg.role === 'assistant' && (
