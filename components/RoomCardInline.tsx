@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Users, ChevronRight } from 'lucide-react';
+import { Users, Layout } from 'lucide-react';
 import { Room } from '../types';
 
 interface RoomCardInlineProps {
@@ -10,34 +10,51 @@ interface RoomCardInlineProps {
 
 const RoomCardInline: React.FC<RoomCardInlineProps> = ({ room, onSelect }) => {
   return (
-    <div className="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex gap-3 my-1 hover:border-slate-300 transition-all cursor-pointer group" onClick={() => onSelect(room)}>
-      <div className="w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden bg-slate-100">
-        <img src={room.image} alt={room.name} className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all" />
-      </div>
-
-      <div className="flex-1 flex flex-col justify-between py-0.5">
+    <div 
+      className="bg-white rounded-[24px] p-5 shadow-sm border border-slate-100 flex gap-4 my-3 hover:shadow-md transition-all cursor-pointer group relative overflow-hidden" 
+      onClick={() => onSelect(room)}
+    >
+      {/* Left Content */}
+      <div className="flex-1 flex flex-col justify-between">
         <div>
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-slate-800 text-[13px] leading-tight">{room.name}</h3>
-            <span className="flex items-center gap-1 text-[10px] text-slate-400 font-bold">
-              <Users className="w-3 h-3" /> {room.capacity}
-            </span>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-1.5 rounded-lg bg-blue-50/50" style={{ color: room.iconColor }}>
+              <Users className="w-4 h-4" />
+            </div>
+            <h3 className="font-bold text-slate-800 text-[15px] tracking-tight">{room.name}</h3>
           </div>
-          <p className="text-[11px] text-slate-500 line-clamp-2 mt-1 leading-relaxed">
+          <p className="text-[12px] text-slate-400 leading-relaxed pr-2">
             {room.description}
           </p>
         </div>
         
-        <div className="flex items-center justify-between mt-2">
-          <div className="flex gap-1">
-            {room.tags?.slice(0, 2).map(tag => (
-              <span key={tag} className="px-1.5 py-0.5 bg-slate-50 text-slate-400 text-[8px] font-bold rounded border border-slate-100 uppercase tracking-tighter">
-                {tag}
-              </span>
-            ))}
-          </div>
-          <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-900 transition-colors" />
+        <div className="flex flex-wrap gap-2 mt-4">
+          {room.tags?.map(tag => (
+            <span key={tag} className="px-2.5 py-1 bg-slate-50 text-slate-400 text-[9px] font-bold rounded-lg border border-slate-100 uppercase tracking-tight">
+              {tag}
+            </span>
+          ))}
         </div>
+      </div>
+
+      {/* Right Content: Image & Action */}
+      <div className="w-[100px] flex flex-shrink-0 flex-col gap-3">
+        <div className="h-[80px] rounded-2xl overflow-hidden shadow-sm bg-slate-50 border border-slate-100">
+          <img 
+            src={room.image} 
+            alt={room.name} 
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+          />
+        </div>
+        <button 
+          className="w-full bg-[#00E5D1] hover:bg-[#00D1BD] text-slate-800 font-bold py-2 rounded-xl text-[11px] transition-all shadow-sm active:scale-95"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(room);
+          }}
+        >
+          Selecionar
+        </button>
       </div>
     </div>
   );
