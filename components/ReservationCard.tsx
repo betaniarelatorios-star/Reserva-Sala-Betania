@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { Calendar, User, Building2, Clock, LogOut } from 'lucide-react';
-import { ReservationData } from '../types';
+import { Calendar, User, Building2, Clock } from 'lucide-react';
+import { ReservationData } from '../types.ts';
 
 interface ReservationCardProps {
   data: ReservationData;
