@@ -59,7 +59,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
     return null;
   };
 
-  // Melhorado para ser robusto contra valores undefined
   const formatTime = (timeStr: string) => timeStr ? timeStr.split(':').slice(0, 2).join(':') : '--:--';
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -155,8 +154,9 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
+        {/* Horários com largura reduzida */}
+        <div className="flex gap-4">
+          <div className="flex-1 max-w-[130px] space-y-1.5">
             <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">
               <Clock className="w-3 h-3" /> Início
             </label>
@@ -168,7 +168,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
               className="w-full bg-white border border-slate-200 rounded-2xl px-3 py-4 text-[14px] text-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-100 transition-all shadow-sm"
             />
           </div>
-          <div className="space-y-1.5">
+          <div className="flex-1 max-w-[130px] space-y-1.5">
             <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">
               <Clock className="w-3 h-3" /> Término
             </label>
