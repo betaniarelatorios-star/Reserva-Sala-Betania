@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
-import { SYSTEM_PROMPT } from "../constants";
-import { ReservationService } from "./reservationService";
+import { SYSTEM_PROMPT } from "../constants.ts";
+import { ReservationService } from "./reservationService.ts";
 
 export class ChatService {
   private ai: GoogleGenAI;
@@ -41,10 +41,8 @@ export class ChatService {
         if (fc.name === "verificar_disponibilidade") {
           const { sala, data, inicio, fim } = fc.args as any;
           
-          // Lógica de verificação Real no Banco
           const isAvailable = await ReservationService.checkAvailability(sala, data, inicio, fim);
           
-          // Segunda chamada para a IA processar o resultado da verificação
           const secondResponse = await this.ai.models.generateContent({
             model: "gemini-3-flash-preview",
             contents: [

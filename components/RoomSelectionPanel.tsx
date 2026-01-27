@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
-import { ChevronLeft, X, Search, Users, Zap } from 'lucide-react';
-import { ROOMS } from '../constants';
-import { Room } from '../types';
-import RoomCardInline from './RoomCardInline';
+import { ChevronLeft, X, Search, Zap } from 'lucide-react';
+import { ROOMS } from '../constants.ts';
+import { Room } from '../types.ts';
+import RoomCardInline from './RoomCardInline.tsx';
 
 interface RoomSelectionPanelProps {
   onClose: () => void;
@@ -22,7 +22,6 @@ const RoomSelectionPanel: React.FC<RoomSelectionPanelProps> = ({ onClose, onSele
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300 p-4">
       <div className="bg-white w-full max-w-md h-[90vh] rounded-[32px] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 border border-white/20">
         
-        {/* Header */}
         <div className="px-6 py-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-xl transition-colors">
@@ -35,7 +34,6 @@ const RoomSelectionPanel: React.FC<RoomSelectionPanelProps> = ({ onClose, onSele
           </button>
         </div>
 
-        {/* Search */}
         <div className="px-6 mb-2">
           <div className="relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-slate-500 transition-colors" />
@@ -49,7 +47,6 @@ const RoomSelectionPanel: React.FC<RoomSelectionPanelProps> = ({ onClose, onSele
           </div>
         </div>
 
-        {/* List */}
         <div className="flex-1 overflow-y-auto px-6 py-2 space-y-1 scrollbar-hide">
           {filteredRooms.map((room) => (
             <RoomCardInline key={room.id} room={room} onSelect={onSelect} />
@@ -65,7 +62,6 @@ const RoomSelectionPanel: React.FC<RoomSelectionPanelProps> = ({ onClose, onSele
           )}
         </div>
 
-        {/* Quick Reserve Footer */}
         <div className="p-5 bg-white border-t border-slate-50">
           <div className="flex items-center justify-between px-2">
             <div className="flex flex-col">

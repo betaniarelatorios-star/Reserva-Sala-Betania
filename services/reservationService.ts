@@ -1,6 +1,6 @@
 
-import { SUPABASE_URL, SUPABASE_KEY, ROOMS } from "../constants";
-import { Reservation, Room } from "../types";
+import { SUPABASE_URL, SUPABASE_KEY, ROOMS } from "../constants.ts";
+import { Reservation, Room } from "../types.ts";
 
 export class ReservationService {
   private static async fetchSupabase(method: string, endpoint: string, body?: any) {
@@ -40,11 +40,9 @@ export class ReservationService {
   }
 
   static async getAvailableRooms(date: string, start: string, end: string): Promise<Room[]> {
-    // Busca todas as reservas do dia
     const query = `reservas?data=eq.${date}`;
     const allReservations: Reservation[] = await this.fetchSupabase('GET', query);
 
-    // Filtra as salas que NÃO têm sobreposição no horário solicitado
     return ROOMS.filter(room => {
       const roomReservations = allReservations.filter(res => res.sala === room.name);
       const hasOverlap = roomReservations.some(res => (start < res.fim && end > res.inicio));

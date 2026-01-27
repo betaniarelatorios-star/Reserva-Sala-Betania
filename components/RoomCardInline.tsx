@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { Users, Layout } from 'lucide-react';
-import { Room } from '../types';
+import { Users } from 'lucide-react';
+import { Room } from '../types.ts';
 
 interface RoomCardInlineProps {
   room: Room;
@@ -14,7 +14,6 @@ const RoomCardInline: React.FC<RoomCardInlineProps> = ({ room, onSelect }) => {
       className="bg-white rounded-[24px] p-5 shadow-sm border border-slate-100 flex gap-4 my-3 hover:shadow-md transition-all cursor-pointer group relative overflow-hidden" 
       onClick={() => onSelect(room)}
     >
-      {/* Left Content */}
       <div className="flex-1 flex flex-col justify-between">
         <div>
           <div className="flex items-center gap-2 mb-2">
@@ -37,7 +36,6 @@ const RoomCardInline: React.FC<RoomCardInlineProps> = ({ room, onSelect }) => {
         </div>
       </div>
 
-      {/* Right Content: Image & Action */}
       <div className="w-[100px] flex flex-shrink-0 flex-col gap-3">
         <div className="h-[80px] rounded-2xl overflow-hidden shadow-sm bg-slate-50 border border-slate-100">
           <img 

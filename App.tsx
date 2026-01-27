@@ -2,22 +2,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Send, 
-  Calendar as CalendarIcon,
   Bot,
-  Info,
-  User as UserIcon,
   LayoutGrid,
-  Share2,
-  CheckCircle2,
-  ChevronRight
+  CheckCircle2
 } from 'lucide-react';
-import { Message, Room, Reservation } from './types';
-import { ChatService } from './services/geminiService';
-import { ROOMS } from './constants';
-import CalendarPanel from './components/CalendarPanel';
-import RoomSelectionPanel from './components/RoomSelectionPanel';
-import RoomCardInline from './components/RoomCardInline';
-import ReservationForm from './components/ReservationForm';
+import { Message, Room, Reservation } from './types.ts';
+import { ChatService } from './services/geminiService.ts';
+import { ROOMS } from './constants.ts';
+import RoomSelectionPanel from './components/RoomSelectionPanel.tsx';
+import RoomCardInline from './components/RoomCardInline.tsx';
+import ReservationForm from './components/ReservationForm.tsx';
 
 const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([

@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
-import { Calendar, Clock, Send, AlertCircle, CheckCircle2, Search, ArrowRight, AlignLeft } from 'lucide-react';
-import { ReservationService } from '../services/reservationService';
-import { Room } from '../types';
+import { Send, AlertCircle, ArrowRight } from 'lucide-react';
+import { ReservationService } from '../services/reservationService.ts';
+import { Room } from '../types.ts';
 
 interface ReservationFormProps {
   room: Room;
@@ -21,7 +21,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
     date: today,
     start: '',
     end: '',
-    purpose: '' // Mapped to 'descricao' in the DB
+    purpose: ''
   });
 
   const validateDateTime = () => {
@@ -29,7 +29,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
     const selectedDateStr = formData.date;
     const selectedDate = new Date(selectedDateStr + 'T00:00:00');
     
-    // Zera horas de "hoje" para comparação de data apenas
     const todayDate = new Date();
     todayDate.setHours(0,0,0,0);
 
@@ -41,7 +40,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
         const startTime = new Date();
         startTime.setHours(h, m, 0, 0);
         
-        // Margem de 1 minuto para evitar erros de delay
         if (startTime < new Date(now.getTime() - 60000)) {
           return "O horário de início não pode ser no passado.";
         }
@@ -74,7 +72,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
 
     setLoading(true);
     try {
-      // 1. CONSULTA AO BANCO (Verificação de conflito)
       const isAvailable = await ReservationService.checkAvailability(
         room.name,
         formData.date,
@@ -84,7 +81,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
 
       if (!isAvailable) {
         setError(`A ${room.name} já possui uma reserva para este período.`);
-        // 2. BUSCA ALTERNATIVAS
         const altRooms = await ReservationService.getAvailableRooms(
           formData.date,
           formData.start,
@@ -95,7 +91,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
         return;
       }
 
-      // 3. REGISTRO (Só ocorre se isAvailable for true)
       const reservation = await ReservationService.createReservation({
         nome: formData.name,
         sala: room.name,
