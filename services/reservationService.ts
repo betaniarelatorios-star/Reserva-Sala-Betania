@@ -33,7 +33,6 @@ export class ReservationService {
     const existing: Reservation[] = await this.fetchSupabase('GET', query);
 
     const conflict = existing.find(res => {
-      // Logic for overlap: (StartA < EndB) and (EndA > StartB)
       return (start < res.fim && end > res.inicio);
     });
 
@@ -52,7 +51,19 @@ export class ReservationService {
   }
 
   static async createReservation(reservation: Reservation): Promise<Reservation> {
-    const result = await this.fetchSupabase('POST', 'reservas', reservation);
-    return result[0];
+    // 1. Cria a reserva
+    const created = await this.fetchSupabase('POST', 'reservas', reservation);
+    const newId = created[0]?.id;
+
+    // 2. Se tiver ID, busca novamente para garantir que pegamos campos gerados (como link_agenda)
+    if (newId) {
+      // Pequeno delay para garantir que triggers de banco tenham processado
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const query = `reservas?id=eq.${newId}`;
+      const freshData = await this.fetchSupabase('GET', query);
+      return freshData[0] || created[0];
+    }
+
+    return created[0];
   }
 }

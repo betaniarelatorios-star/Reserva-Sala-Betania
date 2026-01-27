@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { CheckCircle2, MapPin, User, Calendar, Clock, CalendarClock, ExternalLink } from 'lucide-react';
+import { CheckCircle2, MapPin, User, Calendar, Clock, CalendarClock, ExternalLink, CalendarPlus } from 'lucide-react';
 import { Reservation } from '../types.ts';
 
 interface ReservationSuccessCardProps {
@@ -15,12 +15,14 @@ const ReservationSuccessCard: React.FC<ReservationSuccessCardProps> = ({ reserva
   const handleAddToCalendar = () => {
     if (reservation?.link_agenda) {
       window.open(reservation.link_agenda, '_blank', 'noopener,noreferrer');
+    } else {
+      console.warn("Link da agenda não encontrado no objeto de reserva:", reservation);
     }
   };
 
   return (
     <div className="w-full bg-white rounded-[28px] border border-slate-100 shadow-xl overflow-hidden mt-2 animate-in zoom-in-95 duration-500">
-      {/* Header do Ticket */}
+      {/* Header com Status */}
       <div className="bg-emerald-500 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2 text-white">
           <CheckCircle2 className="w-5 h-5" />
@@ -29,7 +31,7 @@ const ReservationSuccessCard: React.FC<ReservationSuccessCardProps> = ({ reserva
         <div className="text-white/60 text-[10px] font-black uppercase tracking-widest">Digital Ticket</div>
       </div>
       
-      {/* Detalhes da Reserva */}
+      {/* Informações Centrais */}
       <div className="p-6 space-y-5">
         <div className="flex items-start gap-4">
           <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center flex-shrink-0">
@@ -64,19 +66,19 @@ const ReservationSuccessCard: React.FC<ReservationSuccessCardProps> = ({ reserva
           </div>
         </div>
 
-        <div className="flex items-center gap-4 pt-2">
-          <div className="w-10 h-10 rounded-full border-2 border-slate-100 flex items-center justify-center overflow-hidden bg-slate-50">
-             <User className="w-5 h-5 text-slate-300" />
+        <div className="flex items-center gap-4 pt-1">
+          <div className="w-9 h-9 rounded-full border border-slate-100 flex items-center justify-center overflow-hidden bg-slate-50">
+             <User className="w-4 h-4 text-slate-300" />
           </div>
           <div className="flex flex-col">
             <span className="text-[9px] font-bold text-slate-400 uppercase">Responsável</span>
-            <span className="text-[13px] font-semibold text-slate-800">{reservation?.nome || 'Usuário'}</span>
+            <span className="text-[13px] font-semibold text-slate-800 line-clamp-1">{reservation?.nome || 'Usuário'}</span>
           </div>
         </div>
       </div>
 
-      {/* Ações do Card */}
-      <div className="px-6 pb-6 pt-2 flex flex-col gap-3">
+      {/* Seção de Ações Final */}
+      <div className="px-6 pb-6 pt-2 space-y-4">
         <div className="bg-slate-50 px-4 py-3 rounded-2xl flex items-center justify-center border border-dashed border-slate-200">
           <div className="flex items-center gap-2 text-emerald-600">
             <CheckCircle2 className="w-4 h-4" />
@@ -85,23 +87,24 @@ const ReservationSuccessCard: React.FC<ReservationSuccessCardProps> = ({ reserva
         </div>
         
         <div className="grid grid-cols-1 gap-2.5">
-          {/* Botão de Agenda - Destaque em Azul */}
+          {/* BOTÃO PRINCIPAL: GRAVAR NA AGENDA */}
           {reservation?.link_agenda && (
             <button 
               onClick={handleAddToCalendar}
-              className="w-full flex items-center justify-center gap-2.5 py-4 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl transition-all active:scale-[0.98] shadow-md shadow-blue-100 group"
+              className="w-full flex items-center justify-center gap-2.5 py-4 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl transition-all active:scale-[0.98] shadow-lg shadow-blue-100 group"
             >
-              <ExternalLink className="w-4 h-4 text-white/80 group-hover:text-white transition-colors" />
+              <CalendarPlus className="w-4 h-4 text-white/80 group-hover:text-white transition-colors" />
               <span className="text-[13px] font-black uppercase tracking-tight">Gravar na minha agenda</span>
+              <ExternalLink className="w-3 h-3 text-white/40" />
             </button>
           )}
 
-          {/* Botão de Remarcar - Secundário */}
+          {/* BOTÃO SECUNDÁRIO: REMARCAR */}
           <button 
             onClick={() => onReschedule?.(reservation)}
-            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-white border border-slate-200 rounded-2xl text-slate-600 hover:bg-slate-50 transition-all active:scale-[0.98] group"
+            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all active:scale-[0.98] group"
           >
-            <CalendarClock className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
+            <CalendarClock className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
             <span className="text-[12px] font-bold uppercase tracking-tight">Remarcar Reserva</span>
           </button>
         </div>
