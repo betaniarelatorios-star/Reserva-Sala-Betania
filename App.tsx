@@ -39,7 +39,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const lastMsg = messages[messages.length - 1];
     
-    if (lastMsg?.type === 'reservation_form' || lastMsg?.type === 'status' && lastMsg.payload?.reservation) {
+    if (lastMsg?.type === 'reservation_form' || (lastMsg?.type === 'status' && lastMsg.payload?.reservation)) {
       lastMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } 
     else if (messages.length > 1 || isTyping) {
@@ -78,6 +78,29 @@ const App: React.FC = () => {
       payload: { status: 'success', reservation: res }
     };
     setMessages(prev => [...prev, successMsg]);
+  };
+
+  const handleReschedule = (res: Reservation) => {
+    const room = ROOMS.find(r => r.name === res.sala);
+    if (!room) return;
+
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: `Gostaria de remarcar minha reserva na ${res.sala}.`,
+      timestamp: new Date()
+    };
+
+    const assistantMsg: Message = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant',
+      content: `Sem problemas! Vamos ajustar os detalhes. Escolha a nova data e horário para a ${res.sala}:`,
+      timestamp: new Date(),
+      type: 'reservation_form',
+      payload: { room }
+    };
+
+    setMessages(prev => [...prev, userMsg, assistantMsg]);
   };
 
   const handleSend = async (content: string = inputValue) => {
@@ -190,7 +213,10 @@ const App: React.FC = () => {
                   )}
                   
                   {msg.type === 'status' && msg.payload?.status === 'success' && msg.payload?.reservation && (
-                    <ReservationSuccessCard reservation={msg.payload.reservation} />
+                    <ReservationSuccessCard 
+                      reservation={msg.payload.reservation} 
+                      onReschedule={handleReschedule}
+                    />
                   )}
                 </div>
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter px-1 mt-1">

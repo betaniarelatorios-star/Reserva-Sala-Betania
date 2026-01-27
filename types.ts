@@ -18,6 +18,7 @@ export interface Reservation {
   inicio: string;    // HH:mm
   fim: string;       // HH:mm
   descricao: string; // antigo purpose
+  link_agenda?: string; // Link para adicionar ao Google/Outlook Calendar
 }
 
 export type MessageRole = 'user' | 'assistant';

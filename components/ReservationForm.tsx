@@ -154,7 +154,6 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
           />
         </div>
 
-        {/* Horários com largura reduzida */}
         <div className="flex gap-4">
           <div className="flex-1 max-w-[130px] space-y-1.5">
             <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">
@@ -203,6 +202,27 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
                 {error}
               </div>
             </div>
+
+            {alternatives.length > 0 && (
+              <div className="pt-3 border-t border-red-200/30 space-y-2">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Salas livres neste horário:</p>
+                <div className="grid grid-cols-1 gap-2">
+                  {alternatives.map(alt => (
+                    <button
+                      key={alt.id}
+                      type="button"
+                      onClick={() => onSelectAlternative?.(alt)}
+                      className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl transition-all group active:scale-[0.98] shadow-sm text-left"
+                    >
+                      <span className="text-[12px] font-bold text-slate-700">{alt.name}</span>
+                      <div className="flex items-center gap-1 text-blue-500 text-[10px] font-bold uppercase tracking-tight">
+                        Selecionar <ArrowRight className="w-3 h-3" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
