@@ -65,7 +65,7 @@ export class ChatService {
                     } 
                   } 
                 }
-              ]
+              ]}
             ],
             config: { systemInstruction: SYSTEM_PROMPT }
           });
