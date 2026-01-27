@@ -7,8 +7,11 @@ export class ChatService {
   private ai: GoogleGenAI;
 
   constructor() {
-    // Acesso seguro ao process.env para evitar crash em browsers
-    const apiKey = typeof process !== 'undefined' && process.env ? process.env.API_KEY : '';
+    // Busca a API KEY do ambiente injetado ou do window.process definido no HTML
+    const apiKey = (typeof window !== 'undefined' && (window as any).process?.env?.API_KEY) || 
+                   (typeof process !== 'undefined' && process.env?.API_KEY) || 
+                   '';
+                   
     this.ai = new GoogleGenAI({ apiKey: apiKey as string });
   }
 
@@ -76,7 +79,7 @@ export class ChatService {
       return { text: response.text };
     } catch (error) {
       console.error("Erro na IA:", error);
-      return { text: "Erro técnico ao consultar disponibilidade. Por favor, utilize o botão de Salas para reservar manualmente." };
+      return { text: "Desculpe, tive um problema ao processar sua mensagem. Você pode tentar novamente ou usar o botão de Salas acima." };
     }
   }
 }
