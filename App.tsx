@@ -30,15 +30,22 @@ const App: React.FC = () => {
   
   const chatServiceRef = useRef<ChatService | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastMessageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     chatServiceRef.current = new ChatService();
   }, []);
 
   useEffect(() => {
-    // Só rola para o final se houver mais de uma mensagem ou se a IA estiver digitando.
-    // Isso evita que a saudação inicial seja escondida no primeiro carregamento.
-    if (messages.length > 1 || isTyping) {
+    const lastMsg = messages[messages.length - 1];
+    
+    // Se a última mensagem for um formulário de reserva, rola para o TOPO dela
+    // para que o texto "Entendido. Por favor..." fique visível.
+    if (lastMsg?.type === 'reservation_form') {
+      lastMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } 
+    // Caso contrário, mantém a lógica de rolar para o final se houver mais de uma mensagem
+    else if (messages.length > 1 || isTyping) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isTyping]);
@@ -142,55 +149,62 @@ const App: React.FC = () => {
       </header>
 
       <main className="flex-1 overflow-y-auto px-4 py-8 space-y-6 scrollbar-hide bg-[#F8FAFC]">
-        {messages.map((msg) => (
-          <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-            {msg.role === 'assistant' && (
-              <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center bg-slate-900 mt-1">
-                <Bot className="w-4 h-4 text-white" />
-              </div>
-            )}
-            
-            <div className={`flex flex-col gap-1 max-w-[85%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-              <div className={`px-4 py-3 rounded-2xl text-[14px] leading-relaxed shadow-sm border ${
-                msg.role === 'user' 
-                  ? 'bg-blue-600 text-white rounded-tr-none border-blue-700' 
-                  : 'bg-white text-slate-700 rounded-tl-none border-slate-200'
-              }`}>
-                {msg.content.split('\n').map((line, i) => (
-                  <React.Fragment key={i}>
-                    {line}
-                    {i < msg.content.split('\n').length - 1 && <br />}
-                  </React.Fragment>
-                ))}
+        {messages.map((msg, index) => {
+          const isLast = index === messages.length - 1;
+          return (
+            <div 
+              key={msg.id} 
+              ref={isLast ? lastMessageRef : null}
+              className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+            >
+              {msg.role === 'assistant' && (
+                <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center bg-slate-900 mt-1">
+                  <Bot className="w-4 h-4 text-white" />
+                </div>
+              )}
+              
+              <div className={`flex flex-col gap-1 max-w-[85%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                <div className={`px-4 py-3 rounded-2xl text-[14px] leading-relaxed shadow-sm border ${
+                  msg.role === 'user' 
+                    ? 'bg-blue-600 text-white rounded-tr-none border-blue-700' 
+                    : 'bg-white text-slate-700 rounded-tl-none border-slate-200'
+                }`}>
+                  {msg.content.split('\n').map((line, i) => (
+                    <React.Fragment key={i}>
+                      {line}
+                      {i < msg.content.split('\n').length - 1 && <br />}
+                    </React.Fragment>
+                  ))}
 
-                {msg.payload?.showRooms && (
-                  <div className="mt-4 space-y-2">
-                    {ROOMS.map(room => (
-                      <RoomCardInline key={room.id} room={room} onSelect={handleRoomSelect} />
-                    ))}
-                  </div>
-                )}
+                  {msg.payload?.showRooms && (
+                    <div className="mt-4 space-y-2">
+                      {ROOMS.map(room => (
+                        <RoomCardInline key={room.id} room={room} onSelect={handleRoomSelect} />
+                      ))}
+                    </div>
+                  )}
 
-                {msg.type === 'reservation_form' && msg.payload?.room && (
-                  <ReservationForm 
-                    room={msg.payload.room} 
-                    onSuccess={handleReservationSuccess}
-                    onSelectAlternative={handleRoomSelect}
-                  />
-                )}
-                
-                {msg.type === 'status' && msg.payload?.status === 'success' && (
-                  <div className="mt-4 flex items-center gap-2 text-emerald-600 font-bold text-[11px] uppercase tracking-wider bg-emerald-50 p-2 rounded-lg border border-emerald-100">
-                    <CheckCircle2 className="w-4 h-4" /> Reserva Finalizada
-                  </div>
-                )}
+                  {msg.type === 'reservation_form' && msg.payload?.room && (
+                    <ReservationForm 
+                      room={msg.payload.room} 
+                      onSuccess={handleReservationSuccess}
+                      onSelectAlternative={handleRoomSelect}
+                    />
+                  )}
+                  
+                  {msg.type === 'status' && msg.payload?.status === 'success' && (
+                    <div className="mt-4 flex items-center gap-2 text-emerald-600 font-bold text-[11px] uppercase tracking-wider bg-emerald-50 p-2 rounded-lg border border-emerald-100">
+                      <CheckCircle2 className="w-4 h-4" /> Reserva Finalizada
+                    </div>
+                  )}
+                </div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter px-1 mt-1">
+                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
               </div>
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter px-1 mt-1">
-                {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {isTyping && (
           <div className="flex items-center gap-2 ml-11">
             <div className="flex gap-1 bg-white p-3 rounded-2xl rounded-tl-none border border-slate-200 shadow-sm">
