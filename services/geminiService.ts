@@ -7,7 +7,9 @@ export class ChatService {
   private ai: GoogleGenAI;
 
   constructor() {
-    this.ai = new GoogleGenAI({ apiKey: (process.env.API_KEY as string) });
+    // Acesso seguro ao process.env para evitar crash em browsers
+    const apiKey = typeof process !== 'undefined' && process.env ? process.env.API_KEY : '';
+    this.ai = new GoogleGenAI({ apiKey: apiKey as string });
   }
 
   private checkAvailabilityTool: FunctionDeclaration = {
@@ -41,7 +43,8 @@ export class ChatService {
         if (fc.name === "verificar_disponibilidade") {
           const { sala, data, inicio, fim } = fc.args as any;
           
-          const isAvailable = await ReservationService.checkAvailability(sala, data, inicio, fim);
+          const conflict = await ReservationService.checkAvailability(sala, data, inicio, fim);
+          const isAvailable = conflict === null;
           
           const secondResponse = await this.ai.models.generateContent({
             model: "gemini-3-flash-preview",
@@ -57,7 +60,8 @@ export class ChatService {
                     id: fc.id, 
                     response: { 
                       disponivel: isAvailable,
-                      mensagem_sistema: isAvailable ? "Sala disponível." : "Sala ocupada no período solicitado."
+                      reservado_por: conflict ? conflict.nome : null,
+                      mensagem_sistema: isAvailable ? "Sala disponível." : `Sala ocupada por ${conflict?.nome} até ${conflict?.fim}.`
                     } 
                   } 
                 }

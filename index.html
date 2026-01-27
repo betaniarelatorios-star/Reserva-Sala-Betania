@@ -11,7 +11,20 @@
         body { font-family: 'Inter', sans-serif; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        #root:empty::before {
+            content: 'Carregando aplicação...';
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: #64748b;
+            font-size: 14px;
+        }
     </style>
+    <script>
+        // Previne erro de "process is not defined" em ambientes de navegador
+        window.process = { env: { API_KEY: "" } };
+    </script>
 <script type="importmap">
 {
   "imports": {

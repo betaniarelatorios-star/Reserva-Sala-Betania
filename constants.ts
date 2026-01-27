@@ -1,5 +1,5 @@
 
-import { Room } from './types';
+import { Room } from './types.ts';
 
 export const SUPABASE_URL = 'https://hywkalfphfxjbhdhgvyj.supabase.co';
 export const SUPABASE_KEY = 'sb_publishable_74-K2ysRZypEcc9eX9Pbcw_feDvGtaN';
