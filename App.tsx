@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   ChevronLeft, 
   Info,
@@ -24,7 +24,7 @@ const App: React.FC = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedTimeRange, setSelectedTimeRange] = useState<{start: string, end: string} | null>(null);
+  const [selectedTimeRange, setSelectedTimeRange] = useState<{start: string, end: string | null} | null>(null);
   const [purpose, setPurpose] = useState('');
   const [userName, setUserName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,6 +32,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastReservation, setLastReservation] = useState<Reservation | null>(null);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const dateStripRef = useRef<HTMLDivElement>(null);
 
   // Busca inicial das salas
   const fetchRooms = async () => {
@@ -51,27 +52,49 @@ const App: React.FC = () => {
     fetchRooms();
   }, []);
 
-  // Datas para o seletor horizontal (Mostra os dias próximos à data selecionada)
-  const getDaysAround = (baseDateStr: string) => {
+  // Datas para o seletor horizontal (Gera um período maior para melhor navegação)
+  const availableDates = useMemo(() => {
     const days = [];
-    const baseDate = new Date(baseDateStr + 'T00:00:00');
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+
+    // Se a data selecionada for muito no futuro (via seletor manual), garantimos que ela apareça na lista
+    const selected = new Date(selectedDate + 'T00:00:00');
+    let loopDate = new Date(start);
     
-    // Mostra 3 dias antes e 3 dias depois da data selecionada para dar contexto
-    for (let i = -3; i <= 3; i++) {
-      const d = new Date(baseDate);
-      d.setDate(baseDate.getDate() + i);
+    // Se selecionou uma data fora dos próximos 30 dias, começamos a lista um pouco antes dela
+    if (selected.getTime() > start.getTime() + (30 * 24 * 60 * 60 * 1000)) {
+      loopDate = new Date(selected);
+      loopDate.setDate(selected.getDate() - 3);
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(loopDate);
+      d.setDate(loopDate.getDate() + i);
       
-      // Não mostra datas passadas em relação a hoje na barra
-      if (d < new Date(new Date().setHours(0,0,0,0))) continue;
+      if (d < start) continue; // Não mostra datas passadas
 
       days.push({
         label: d.toLocaleDateString('pt-BR', { weekday: 'short' }).toUpperCase().replace('.', ''),
         num: d.getDate(),
-        full: d.toISOString().split('T')[0]
+        full: d.toISOString().split('T')[0],
+        isToday: d.toISOString().split('T')[0] === todayStr
       });
     }
     return days;
-  };
+  }, [selectedDate]);
+
+  // Efeito para rolar automaticamente para a data selecionada na faixa horizontal
+  useEffect(() => {
+    if (step === 'datetime' && dateStripRef.current) {
+      const activeEl = dateStripRef.current.querySelector('[data-active="true"]');
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+  }, [step, selectedDate]);
 
   const timeSlots = {
     manha: ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30'],
@@ -79,8 +102,48 @@ const App: React.FC = () => {
     noite: ['18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00', '22:30', '23:00', '23:30', '00:00', '00:30', '01:00', '01:30', '02:00', '02:30', '03:00']
   };
 
+  const allSlotsSorted = useMemo(() => {
+    return [...timeSlots.manha, ...timeSlots.tarde, ...timeSlots.noite];
+  }, []);
+
+  const handleTimeClick = (slot: string) => {
+    setError(null);
+    if (!selectedTimeRange || (selectedTimeRange.start && selectedTimeRange.end)) {
+      setSelectedTimeRange({ start: slot, end: null });
+    } else {
+      const startTime = selectedTimeRange.start;
+      const startIdx = allSlotsSorted.indexOf(startTime);
+      const endIdx = allSlotsSorted.indexOf(slot);
+
+      if (endIdx > startIdx) {
+        setSelectedTimeRange({ start: startTime, end: slot });
+      } else if (endIdx === startIdx) {
+        const nextIdx = startIdx + 1;
+        if (nextIdx < allSlotsSorted.length) {
+          setSelectedTimeRange({ start: startTime, end: allSlotsSorted[nextIdx] });
+        }
+      } else {
+        setSelectedTimeRange({ start: slot, end: null });
+      }
+    }
+  };
+
+  const isSlotSelected = (slot: string) => {
+    if (!selectedTimeRange) return false;
+    if (selectedTimeRange.start === slot) return true;
+    if (selectedTimeRange.end === slot) return true;
+    
+    if (selectedTimeRange.start && selectedTimeRange.end) {
+      const startIdx = allSlotsSorted.indexOf(selectedTimeRange.start);
+      const endIdx = allSlotsSorted.indexOf(selectedTimeRange.end);
+      const currentIdx = allSlotsSorted.indexOf(slot);
+      return currentIdx > startIdx && currentIdx < endIdx;
+    }
+    return false;
+  };
+
   const handleFinalize = async () => {
-    if (!selectedRoom || !selectedTimeRange || !userName) return;
+    if (!selectedRoom || !selectedTimeRange || !selectedTimeRange.end || !userName) return;
     setLoading(true);
     setError(null);
     try {
@@ -197,58 +260,91 @@ const App: React.FC = () => {
              {renderHeader('Data e Horário', 'Escolha quando você deseja utilizar o ambiente.', 2)}
              
              <div className="px-6">
-               <div className="flex items-center justify-between mb-6">
+               <div className="flex items-center justify-between mb-8">
                  <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-800">
                     {new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
                  </h2>
                  <button 
                   onClick={() => setIsDatePickerOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-100 rounded-xl shadow-sm text-[11px] font-black text-[#00AEEF] uppercase tracking-wider hover:bg-slate-50 transition-all"
+                  className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-100 rounded-xl shadow-sm text-[11px] font-black text-[#00AEEF] uppercase tracking-wider hover:bg-slate-50 transition-all active:scale-95"
                  >
                    <CalendarIcon className="w-4 h-4" /> Alterar Data
                  </button>
                </div>
 
-               <div className="flex justify-between items-center mb-10 px-2 overflow-x-auto scrollbar-hide gap-4">
-                 {getDaysAround(selectedDate).map((day, i) => (
-                   <div key={i} className="flex flex-col items-center gap-3">
-                     <span className={`text-[10px] font-black ${day.full === selectedDate ? 'text-[#00AEEF]' : 'text-slate-400'}`}>{day.label}</span>
+               <div 
+                ref={dateStripRef}
+                className="flex items-center mb-10 pb-2 overflow-x-auto scrollbar-hide gap-3 snap-x touch-pan-x"
+               >
+                 {availableDates.map((day, i) => (
+                   <div 
+                    key={i} 
+                    data-active={day.full === selectedDate}
+                    className="flex flex-col items-center gap-3 snap-center flex-shrink-0"
+                   >
+                     <span className={`text-[10px] font-black uppercase tracking-widest ${day.full === selectedDate ? 'text-[#00AEEF]' : 'text-slate-400'}`}>
+                        {day.isToday ? 'Hoje' : day.label}
+                     </span>
                      <button 
-                        onClick={() => setSelectedDate(day.full)}
-                        className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-[16px] transition-all ${day.full === selectedDate ? 'bg-[#00AEEF] text-white shadow-lg shadow-[#00AEEF]/20' : 'text-slate-600 hover:bg-white bg-white shadow-sm border border-slate-100'}`}
+                        onClick={() => {
+                          setSelectedDate(day.full);
+                          setSelectedTimeRange(null);
+                        }}
+                        className={`w-14 h-14 rounded-full flex flex-col items-center justify-center font-bold text-[18px] transition-all duration-300 relative ${day.full === selectedDate ? 'bg-[#00AEEF] text-white shadow-xl shadow-[#00AEEF]/25 scale-110' : 'text-slate-600 bg-white shadow-sm border border-slate-100 hover:border-[#00AEEF]/30'}`}
                      >
                        {day.num}
+                       {day.isToday && day.full !== selectedDate && (
+                         <div className="absolute -bottom-1 w-1.5 h-1.5 bg-[#00AEEF] rounded-full"></div>
+                       )}
                      </button>
                    </div>
                  ))}
                </div>
 
+               <div className="mb-8 p-5 bg-white rounded-[24px] flex items-center justify-between border border-slate-100 shadow-sm animate-in fade-in zoom-in-95 duration-500">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-[#00AEEF]/10 flex items-center justify-center">
+                      <Clock className="w-6 h-6 text-[#00AEEF]" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">Período Selecionado</span>
+                      <p className="text-[16px] font-black text-slate-800">
+                        {selectedTimeRange ? (
+                          selectedTimeRange.end ? `${selectedTimeRange.start} às ${selectedTimeRange.end}` : `${selectedTimeRange.start} até...`
+                        ) : "Toque em 2 horários"}
+                      </p>
+                    </div>
+                  </div>
+                  {selectedTimeRange && (
+                    <button 
+                      onClick={() => setSelectedTimeRange(null)}
+                      className="p-2 bg-slate-50 rounded-xl text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  )}
+               </div>
+
                {error && (
-                 <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-sm font-medium animate-in zoom-in-95">
+                 <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-sm font-medium animate-in zoom-in-95">
                     <AlertCircle className="w-5 h-5 flex-shrink-0" />
                     {error}
                  </div>
                )}
 
-               <div className="space-y-8">
+               <div className="space-y-10 pb-10">
                   {Object.entries(timeSlots).map(([label, slots]) => (
-                    <div key={label} className="space-y-4">
+                    <div key={label} className="space-y-5">
                       <div className="flex items-center gap-4">
-                        <span className="text-sm font-bold text-slate-400 capitalize">{label}</span>
-                        <div className="h-[1px] flex-1 bg-slate-200"></div>
+                        <span className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">{label}</span>
+                        <div className="h-[1px] flex-1 bg-gradient-to-r from-slate-200 to-transparent"></div>
                       </div>
-                      <div className="grid grid-cols-4 gap-2.5">
+                      <div className="grid grid-cols-4 gap-3">
                         {slots.map(slot => (
                           <button 
                             key={slot}
-                            onClick={() => {
-                              const [h, m] = slot.split(':').map(Number);
-                              const endH = m === 30 ? h + 1 : h;
-                              const endM = m === 30 ? '00' : '30';
-                              const endStr = `${endH.toString().padStart(2, '0')}:${endM}`;
-                              setSelectedTimeRange({start: slot, end: endStr});
-                            }}
-                            className={`py-3.5 rounded-xl text-sm font-bold transition-all border ${selectedTimeRange?.start === slot ? 'bg-[#00AEEF] border-[#00AEEF] text-white shadow-md' : 'bg-white border-slate-100 text-slate-500 hover:border-slate-300'}`}
+                            onClick={() => handleTimeClick(slot)}
+                            className={`py-4 rounded-2xl text-[15px] font-bold transition-all duration-200 border ${isSlotSelected(slot) ? 'bg-[#00AEEF] border-[#00AEEF] text-white shadow-lg shadow-[#00AEEF]/20 translate-y-[-2px]' : 'bg-white border-slate-100 text-slate-500 hover:border-slate-300 hover:bg-slate-50'}`}
                           >
                             {slot}
                           </button>
@@ -390,6 +486,7 @@ const App: React.FC = () => {
                   onChange={(e) => {
                     setSelectedDate(e.target.value);
                     setIsDatePickerOpen(false);
+                    setSelectedTimeRange(null);
                   }}
                   className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 text-lg font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-[#00AEEF]/10 transition-all"
                 />
@@ -414,11 +511,11 @@ const App: React.FC = () => {
             <button 
               onClick={() => {
                 if (step === 'rooms' && selectedRoom) setStep('datetime');
-                else if (step === 'datetime' && selectedTimeRange) setStep('confirm');
+                else if (step === 'datetime' && selectedTimeRange && selectedTimeRange.end) setStep('confirm');
                 else if (step === 'confirm') handleFinalize();
               }}
-              disabled={loading || (step === 'rooms' && !selectedRoom) || (step === 'datetime' && !selectedTimeRange) || (step === 'confirm' && !userName)}
-              className={`w-full py-5 rounded-[24px] font-bold text-[16px] flex items-center justify-center gap-3 transition-all active:scale-[0.97] shadow-lg ${loading || (step === 'rooms' && !selectedRoom) || (step === 'datetime' && !selectedTimeRange) || (step === 'confirm' && !userName) ? 'bg-slate-200 text-slate-400' : 'bg-[#00AEEF] text-white shadow-[#00AEEF]/20'}`}
+              disabled={loading || (step === 'rooms' && !selectedRoom) || (step === 'datetime' && (!selectedTimeRange || !selectedTimeRange.end)) || (step === 'confirm' && !userName)}
+              className={`w-full py-5 rounded-[24px] font-bold text-[16px] flex items-center justify-center gap-3 transition-all active:scale-[0.97] shadow-lg ${loading || (step === 'rooms' && !selectedRoom) || (step === 'datetime' && (!selectedTimeRange || !selectedTimeRange.end)) || (step === 'confirm' && !userName) ? 'bg-slate-200 text-slate-400' : 'bg-[#00AEEF] text-white shadow-[#00AEEF]/20'}`}
             >
               {loading ? (
                 <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
