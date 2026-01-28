@@ -1,267 +1,436 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Send, 
-  Bot,
-  LayoutGrid
+  ChevronLeft, 
+  Info,
+  Calendar as CalendarIcon,
+  Clock,
+  ArrowRight,
+  CheckCircle2,
+  CalendarPlus,
+  MapPin,
+  Users,
+  Loader2,
+  AlertCircle,
+  X
 } from 'lucide-react';
-import { Message, Room, Reservation } from './types.ts';
-import { ChatService } from './services/geminiService.ts';
-import { ROOMS } from './constants.ts';
-import RoomSelectionPanel from './components/RoomSelectionPanel.tsx';
-import RoomCardInline from './components/RoomCardInline.tsx';
-import ReservationForm from './components/ReservationForm.tsx';
-import ReservationSuccessCard from './components/ReservationSuccessCard.tsx';
+import { Room, Reservation } from './types.ts';
+import { ReservationService } from './services/reservationService.ts';
+
+type Step = 'rooms' | 'datetime' | 'confirm' | 'success';
 
 const App: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: `Olá! Sou seu assistente de reservas. Como posso ajudar você hoje?`,
-      timestamp: new Date(),
-      type: 'text',
-      payload: { showRooms: true }
+  const [step, setStep] = useState<Step>('rooms');
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedTimeRange, setSelectedTimeRange] = useState<{start: string, end: string} | null>(null);
+  const [purpose, setPurpose] = useState('');
+  const [userName, setUserName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [loadingRooms, setLoadingRooms] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastReservation, setLastReservation] = useState<Reservation | null>(null);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+
+  // Busca inicial das salas
+  const fetchRooms = async () => {
+    try {
+      setLoadingRooms(true);
+      setError(null);
+      const data = await ReservationService.getRooms();
+      setRooms(data);
+    } catch (e: any) {
+      setError("Não foi possível carregar as salas. Verifique sua conexão.");
+    } finally {
+      setLoadingRooms(false);
     }
-  ]);
-  const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [isRoomPanelOpen, setIsRoomPanelOpen] = useState(false);
-  
-  const chatServiceRef = useRef<ChatService | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const lastMessageRef = useRef<HTMLDivElement>(null);
+  };
 
   useEffect(() => {
-    chatServiceRef.current = new ChatService();
+    fetchRooms();
   }, []);
 
-  useEffect(() => {
-    const lastMsg = messages[messages.length - 1];
+  // Datas para o seletor horizontal (Mostra os dias próximos à data selecionada)
+  const getDaysAround = (baseDateStr: string) => {
+    const days = [];
+    const baseDate = new Date(baseDateStr + 'T00:00:00');
     
-    if (lastMsg?.type === 'reservation_form' || (lastMsg?.type === 'status' && lastMsg.payload?.reservation)) {
-      lastMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } 
-    else if (messages.length > 1 || isTyping) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Mostra 3 dias antes e 3 dias depois da data selecionada para dar contexto
+    for (let i = -3; i <= 3; i++) {
+      const d = new Date(baseDate);
+      d.setDate(baseDate.getDate() + i);
+      
+      // Não mostra datas passadas em relação a hoje na barra
+      if (d < new Date(new Date().setHours(0,0,0,0))) continue;
+
+      days.push({
+        label: d.toLocaleDateString('pt-BR', { weekday: 'short' }).toUpperCase().replace('.', ''),
+        num: d.getDate(),
+        full: d.toISOString().split('T')[0]
+      });
     }
-  }, [messages, isTyping]);
-
-  const handleRoomSelect = (room: Room) => {
-    const userMessage: Message = { 
-      id: Date.now().toString(), 
-      role: 'user', 
-      content: `Quero reservar a ${room.name}`, 
-      timestamp: new Date() 
-    };
-    
-    const botMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      content: `Entendido. Por favor, preencha o formulário abaixo para confirmarmos a disponibilidade da ${room.name}.`,
-      timestamp: new Date(),
-      type: 'reservation_form',
-      payload: { room }
-    };
-
-    setMessages(prev => [...prev, userMessage, botMessage]);
-    setIsRoomPanelOpen(false);
+    return days;
   };
 
-  const handleReservationSuccess = (res: Reservation) => {
-    const successMsg: Message = {
-      id: Date.now().toString(),
-      role: 'assistant',
-      content: 'Sua reserva foi confirmada com sucesso! Confira os detalhes abaixo:',
-      timestamp: new Date(),
-      type: 'status',
-      payload: { status: 'success', reservation: res }
-    };
-    setMessages(prev => [...prev, successMsg]);
+  const timeSlots = {
+    manha: ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30'],
+    tarde: ['13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'],
+    noite: ['18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00', '22:30', '23:00', '23:30', '00:00', '00:30', '01:00', '01:30', '02:00', '02:30', '03:00']
   };
 
-  const handleReschedule = (res: Reservation) => {
-    const room = ROOMS.find(r => r.name === res.sala);
-    if (!room) return;
-
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: `Gostaria de remarcar minha reserva na ${res.sala}.`,
-      timestamp: new Date()
-    };
-
-    const assistantMsg: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      content: `Sem problemas! Vamos ajustar os detalhes. Escolha a nova data e horário para a ${res.sala}:`,
-      timestamp: new Date(),
-      type: 'reservation_form',
-      payload: { room }
-    };
-
-    setMessages(prev => [...prev, userMsg, assistantMsg]);
-  };
-
-  const handleSend = async (content: string = inputValue) => {
-    if (!content.trim()) return;
-
-    const userMessage: Message = { 
-      id: Date.now().toString(), 
-      role: 'user', 
-      content, 
-      timestamp: new Date() 
-    };
-    
-    setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
-    setIsTyping(true);
-
+  const handleFinalize = async () => {
+    if (!selectedRoom || !selectedTimeRange || !userName) return;
+    setLoading(true);
+    setError(null);
     try {
-      const response = await chatServiceRef.current?.sendMessage(content);
-      setIsTyping(false);
+      const conflict = await ReservationService.checkAvailability(
+        selectedRoom.name,
+        selectedDate,
+        selectedTimeRange.start,
+        selectedTimeRange.end
+      );
 
-      if (response) {
-        setMessages(prev => [...prev, {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: response.text,
-          timestamp: new Date(),
-        }]);
+      if (conflict) {
+        setError(`Esta sala já foi reservada por ${conflict.nome} neste horário.`);
+        setStep('datetime');
+        setLoading(false);
+        return;
       }
-    } catch (error: any) {
-      setIsTyping(false);
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'Desculpe, ocorreu um erro técnico. Por favor, tente novamente.',
-        timestamp: new Date(),
-        status: 'error'
-      }]);
+
+      const res = await ReservationService.createReservation({
+        nome: userName,
+        sala: selectedRoom.name,
+        data: selectedDate,
+        inicio: selectedTimeRange.start,
+        fim: selectedTimeRange.end,
+        descricao: purpose
+      });
+      
+      setLastReservation(res);
+      setStep('success');
+    } catch (e) {
+      setError("Erro ao salvar reserva. Tente novamente.");
+    } finally {
+      setLoading(false);
     }
   };
+
+  const renderHeader = (title: string, subtitle: string, stepNum: number) => (
+    <div className="px-6 pt-10 pb-6">
+      <div className="flex items-center justify-between mb-8">
+        <button 
+          onClick={() => {
+            if (step === 'datetime') setStep('rooms');
+            if (step === 'confirm') setStep('datetime');
+          }}
+          className={`w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-600 border border-slate-100 ${step === 'rooms' ? 'invisible' : ''}`}
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <div className="flex flex-col items-center">
+           <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">Passo {stepNum} de 3</span>
+           <div className="flex gap-1.5">
+             <div className={`h-1 rounded-full transition-all duration-300 ${stepNum >= 1 ? 'w-8 bg-[#00AEEF]' : 'w-8 bg-slate-200'}`}></div>
+             <div className={`h-1 rounded-full transition-all duration-300 ${stepNum >= 2 ? 'w-8 bg-[#00AEEF]' : 'w-8 bg-slate-200'}`}></div>
+             <div className={`h-1 rounded-full transition-all duration-300 ${stepNum >= 3 ? 'w-8 bg-[#00AEEF]' : 'w-8 bg-slate-200'}`}></div>
+           </div>
+        </div>
+        <button className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-400 border border-slate-100">
+          <Info className="w-5 h-5" />
+        </button>
+      </div>
+      <h1 className="text-3xl font-extrabold text-slate-900 mb-2">{title}</h1>
+      <p className="text-slate-500 text-sm leading-relaxed">{subtitle}</p>
+    </div>
+  );
 
   return (
-    <div className="flex flex-col h-screen max-w-2xl mx-auto bg-white shadow-2xl relative overflow-hidden font-sans border-x border-slate-100">
-      <header className="flex items-center px-6 py-4 bg-white sticky top-0 z-20 border-b border-slate-100 shadow-sm">
-        <div className="flex-1 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-900 shadow-lg">
-            <Bot className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="font-bold text-slate-800 text-[15px] leading-tight">Reserva Betânia</h1>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Online Agora</span>
-            </div>
-          </div>
-        </div>
-        <button 
-          onClick={() => setIsRoomPanelOpen(true)} 
-          className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-slate-600 transition-all border border-slate-200"
-        >
-          <LayoutGrid className="w-4 h-4" />
-          <span className="text-[11px] font-bold uppercase tracking-tight">Ver Salas</span>
-        </button>
-      </header>
-
-      <main className="flex-1 overflow-y-auto px-4 py-8 space-y-6 scrollbar-hide bg-[#F8FAFC]">
-        {messages.map((msg, index) => {
-          const isLast = index === messages.length - 1;
-          const isForm = msg.type === 'reservation_form';
-          
-          return (
-            <div 
-              key={msg.id} 
-              ref={isLast ? lastMessageRef : null}
-              className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
-            >
-              {msg.role === 'assistant' && (
-                <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center bg-slate-900 mt-1">
-                  <Bot className="w-4 h-4 text-white" />
+    <div className="flex flex-col h-screen max-w-2xl mx-auto bg-[#F8FAFC] text-slate-900 overflow-hidden select-none">
+      
+      <div className="flex-1 overflow-y-auto scrollbar-hide pb-32">
+        
+        {/* PASSO 1: SALAS */}
+        {step === 'rooms' && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {renderHeader('Escolha sua Sala', 'Selecione o ambiente ideal para o seu atendimento ou reunião.', 1)}
+            <div className="px-6 space-y-4 mt-2">
+              {loadingRooms ? (
+                <div className="flex flex-col items-center justify-center py-24 gap-4">
+                  <Loader2 className="w-10 h-10 text-[#00AEEF] animate-spin" />
+                  <p className="text-slate-400 font-bold text-xs uppercase tracking-widest animate-pulse">Buscando salas...</p>
                 </div>
-              )}
-              
-              <div className={`flex flex-col gap-1 max-w-[85%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                <div className={`${isForm ? '' : 'px-4 py-3 rounded-2xl border shadow-sm ' + (msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none border-blue-700' : 'bg-white text-slate-700 rounded-tl-none border-slate-200')} text-[14px] leading-relaxed`}>
-                  {!isForm && msg.content.split('\n').map((line, i) => (
-                    <React.Fragment key={i}>
-                      {line}
-                      {i < msg.content.split('\n').length - 1 && <br />}
-                    </React.Fragment>
-                  ))}
-
-                  {msg.payload?.showRooms && (
-                    <div className="mt-4 space-y-2">
-                      {ROOMS.map(room => (
-                        <RoomCardInline key={room.id} room={room} onSelect={handleRoomSelect} />
-                      ))}
+              ) : (
+                rooms.map((room) => (
+                  <div 
+                    key={room.id}
+                    onClick={() => setSelectedRoom(room)}
+                    className={`group relative flex bg-white rounded-[28px] p-4 gap-4 border-2 transition-all cursor-pointer shadow-sm hover:shadow-md ${selectedRoom?.id === room.id ? 'border-[#00AEEF]' : 'border-transparent'}`}
+                  >
+                    <div className="w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 bg-slate-100 border border-slate-50">
+                      <img src={room.image} className="w-full h-full object-cover" alt={room.name} />
                     </div>
-                  )}
-
-                  {isForm && msg.payload?.room && (
-                    <div className="space-y-4">
-                      <div className="px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-700 shadow-sm rounded-tl-none">
-                        {msg.content}
+                    <div className="flex-1 py-1">
+                      <h3 className="text-[17px] font-bold text-slate-800 mb-1">{room.name}</h3>
+                      <div className="flex items-center gap-1.5 text-slate-400 text-xs mb-3 font-medium">
+                        <Users className="w-3.5 h-3.5" />
+                        <span>{room.capacity > 0 ? `Até ${room.capacity} pessoas` : 'Capacidade individual'}</span>
                       </div>
-                      <ReservationForm 
-                        room={msg.payload.room} 
-                        onSuccess={handleReservationSuccess}
-                        onSelectAlternative={handleRoomSelect}
-                      />
+                      <div className="flex gap-2 flex-wrap">
+                        {room.tags?.map(tag => (
+                          <span key={tag} className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 uppercase tracking-tight">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  )}
-                  
-                  {msg.type === 'status' && msg.payload?.status === 'success' && msg.payload?.reservation && (
-                    <ReservationSuccessCard 
-                      reservation={msg.payload.reservation} 
-                      onReschedule={handleReschedule}
-                    />
-                  )}
-                </div>
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter px-1 mt-1">
-                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-        {isTyping && (
-          <div className="flex items-center gap-2 ml-11">
-            <div className="flex gap-1 bg-white p-3 rounded-2xl rounded-tl-none border border-slate-200 shadow-sm">
-              <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce"></div>
-              <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-              <div className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
-      </main>
 
-      <div className="px-4 pb-6 pt-4 bg-white border-t border-slate-100">
-        <div className="flex items-center gap-3">
-          <div className="flex-1 bg-slate-50 rounded-2xl px-5 py-1.5 flex items-center gap-2 border border-slate-200 focus-within:bg-white focus-within:ring-2 focus-within:ring-slate-100 focus-within:border-slate-300 transition-all">
-            <input 
-              type="text" 
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Digite sua mensagem..." 
-              className="flex-1 bg-transparent border-none focus:ring-0 text-slate-700 text-[14px] py-2.5"
-            />
+        {/* PASSO 2: DATA E HORA */}
+        {step === 'datetime' && (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+             {renderHeader('Data e Horário', 'Escolha quando você deseja utilizar o ambiente.', 2)}
+             
+             <div className="px-6">
+               <div className="flex items-center justify-between mb-6">
+                 <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-800">
+                    {new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                 </h2>
+                 <button 
+                  onClick={() => setIsDatePickerOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-100 rounded-xl shadow-sm text-[11px] font-black text-[#00AEEF] uppercase tracking-wider hover:bg-slate-50 transition-all"
+                 >
+                   <CalendarIcon className="w-4 h-4" /> Alterar Data
+                 </button>
+               </div>
+
+               <div className="flex justify-between items-center mb-10 px-2 overflow-x-auto scrollbar-hide gap-4">
+                 {getDaysAround(selectedDate).map((day, i) => (
+                   <div key={i} className="flex flex-col items-center gap-3">
+                     <span className={`text-[10px] font-black ${day.full === selectedDate ? 'text-[#00AEEF]' : 'text-slate-400'}`}>{day.label}</span>
+                     <button 
+                        onClick={() => setSelectedDate(day.full)}
+                        className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-[16px] transition-all ${day.full === selectedDate ? 'bg-[#00AEEF] text-white shadow-lg shadow-[#00AEEF]/20' : 'text-slate-600 hover:bg-white bg-white shadow-sm border border-slate-100'}`}
+                     >
+                       {day.num}
+                     </button>
+                   </div>
+                 ))}
+               </div>
+
+               {error && (
+                 <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-sm font-medium animate-in zoom-in-95">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    {error}
+                 </div>
+               )}
+
+               <div className="space-y-8">
+                  {Object.entries(timeSlots).map(([label, slots]) => (
+                    <div key={label} className="space-y-4">
+                      <div className="flex items-center gap-4">
+                        <span className="text-sm font-bold text-slate-400 capitalize">{label}</span>
+                        <div className="h-[1px] flex-1 bg-slate-200"></div>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2.5">
+                        {slots.map(slot => (
+                          <button 
+                            key={slot}
+                            onClick={() => {
+                              const [h, m] = slot.split(':').map(Number);
+                              const endH = m === 30 ? h + 1 : h;
+                              const endM = m === 30 ? '00' : '30';
+                              const endStr = `${endH.toString().padStart(2, '0')}:${endM}`;
+                              setSelectedTimeRange({start: slot, end: endStr});
+                            }}
+                            className={`py-3.5 rounded-xl text-sm font-bold transition-all border ${selectedTimeRange?.start === slot ? 'bg-[#00AEEF] border-[#00AEEF] text-white shadow-md' : 'bg-white border-slate-100 text-slate-500 hover:border-slate-300'}`}
+                          >
+                            {slot}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+               </div>
+             </div>
           </div>
-          <button 
-            onClick={() => handleSend()} 
-            disabled={!inputValue.trim()}
-            className="w-11 h-11 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-md hover:bg-slate-800 disabled:bg-slate-200 disabled:shadow-none transition-all active:scale-95"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        </div>
+        )}
+
+        {/* PASSO 3: CONFIRMAÇÃO */}
+        {step === 'confirm' && (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+            {renderHeader('Confirmação', 'Confira os dados e identifique o responsável pela reserva.', 3)}
+            
+            <div className="px-6 space-y-6 mt-2">
+              <div className="bg-white rounded-[32px] p-6 space-y-8 border border-slate-100 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-2xl overflow-hidden bg-slate-100 border border-slate-50">
+                    <img src={selectedRoom?.image} className="w-full h-full object-cover" alt="" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">{selectedRoom?.name}</h3>
+                    <p className="text-slate-500 text-xs">{selectedRoom?.description}</p>
+                  </div>
+                </div>
+
+                <div className="h-[1px] bg-slate-100"></div>
+
+                <div className="space-y-5">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/5 flex items-center justify-center">
+                      <CalendarIcon className="w-5 h-5 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">Data Selecionada</p>
+                      <p className="text-[15px] font-bold text-slate-800">{new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric'})}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-purple-500/5 flex items-center justify-center">
+                      <Clock className="w-5 h-5 text-purple-500" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">Horário</p>
+                      <p className="text-[15px] font-bold text-slate-800">{selectedTimeRange?.start} às {selectedTimeRange?.end}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-500 ml-1">Quem é o responsável?</label>
+                  <input 
+                    type="text"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                    placeholder="Seu nome completo"
+                    className="w-full bg-white border border-slate-200 rounded-2xl px-6 py-4 text-sm text-slate-800 focus:outline-none focus:ring-4 focus:ring-[#00AEEF]/5 transition-all shadow-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-500 ml-1">Qual o assunto? (Opcional)</label>
+                  <textarea 
+                    value={purpose}
+                    onChange={(e) => setPurpose(e.target.value)}
+                    placeholder="Ex: Reunião de equipe"
+                    className="w-full bg-white border border-slate-200 rounded-3xl p-6 text-sm text-slate-800 focus:outline-none focus:ring-4 focus:ring-[#00AEEF]/5 transition-all resize-none shadow-sm"
+                    rows={3}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PASSO FINAL: SUCESSO */}
+        {step === 'success' && (
+          <div className="flex flex-col items-center justify-center px-8 text-center pt-20 animate-in zoom-in duration-500">
+             <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mb-6 shadow-xl shadow-emerald-100">
+                <CheckCircle2 className="w-10 h-10 text-white" />
+             </div>
+             <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tight">Reserva Confirmada!</h2>
+             <p className="text-slate-500 text-sm mb-12">Tudo pronto. Seu horário já está garantido na {selectedRoom?.name}.</p>
+
+             <div className="w-full bg-white rounded-[32px] p-6 text-left space-y-4 border border-slate-100 shadow-md mb-8">
+                <div className="flex justify-between items-center">
+                   <span className="text-xs font-bold text-slate-400 uppercase">Resumo Digital</span>
+                   <span className="text-[10px] bg-emerald-100 text-emerald-600 px-2 py-1 rounded-md font-black">VALIDADO</span>
+                </div>
+                <div>
+                   <h4 className="font-bold text-lg text-slate-900">{selectedRoom?.name}</h4>
+                   <p className="text-sm text-slate-500">{selectedDate.split('-').reverse().join('/')} • {selectedTimeRange?.start} - {selectedTimeRange?.end}</p>
+                </div>
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-50 text-slate-400 text-xs">
+                   <Users className="w-3.5 h-3.5" />
+                   <span>Responsável: {userName}</span>
+                </div>
+             </div>
+
+             <div className="w-full space-y-3">
+                {lastReservation?.link_agenda && (
+                  <button 
+                    onClick={() => window.open(lastReservation.link_agenda, '_blank')}
+                    className="w-full py-4.5 bg-[#00AEEF] text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-[#00AEEF]/20 active:scale-95 transition-all"
+                  >
+                    <CalendarPlus className="w-5 h-5" /> Adicionar à Agenda
+                  </button>
+                )}
+                <button 
+                  onClick={() => { setStep('rooms'); setSelectedRoom(null); setSelectedTimeRange(null); setPurpose(''); setUserName(''); }}
+                  className="w-full py-4.5 bg-slate-100 text-slate-500 rounded-2xl font-bold active:scale-95 transition-all"
+                >
+                  Fazer outra Reserva
+                </button>
+             </div>
+          </div>
+        )}
       </div>
 
-      {isRoomPanelOpen && (
-        <RoomSelectionPanel onClose={() => setIsRoomPanelOpen(false)} onSelect={handleRoomSelect} />
+      {/* MODAL SELETOR DE DATA ANUAL */}
+      {isDatePickerOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300 p-6">
+          <div className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-white/20">
+             <div className="px-6 py-6 border-b border-slate-50 flex items-center justify-between">
+               <h3 className="font-bold text-slate-800">Escolher Data</h3>
+               <button onClick={() => setIsDatePickerOpen(false)} className="p-2 hover:bg-slate-50 rounded-xl transition-colors">
+                 <X className="w-5 h-5 text-slate-300" />
+               </button>
+             </div>
+             <div className="p-6">
+                <input 
+                  type="date"
+                  min={new Date().toISOString().split('T')[0]}
+                  value={selectedDate}
+                  onChange={(e) => {
+                    setSelectedDate(e.target.value);
+                    setIsDatePickerOpen(false);
+                  }}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 text-lg font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-[#00AEEF]/10 transition-all"
+                />
+                <p className="mt-4 text-xs text-slate-400 font-medium text-center italic">Selecione uma data futura para verificar horários.</p>
+             </div>
+             <div className="p-6 bg-slate-50">
+                <button 
+                  onClick={() => setIsDatePickerOpen(false)}
+                  className="w-full py-4 bg-[#00AEEF] text-white rounded-2xl font-bold shadow-lg shadow-[#00AEEF]/10 active:scale-95 transition-all"
+                >
+                  Confirmar Data
+                </button>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* RODAPÉ FIXO DE AÇÃO */}
+      {step !== 'success' && (
+        <div className="fixed bottom-0 left-0 right-0 p-6 bg-white/80 backdrop-blur-md border-t border-slate-100 z-50 flex justify-center">
+          <div className="max-w-2xl w-full">
+            <button 
+              onClick={() => {
+                if (step === 'rooms' && selectedRoom) setStep('datetime');
+                else if (step === 'datetime' && selectedTimeRange) setStep('confirm');
+                else if (step === 'confirm') handleFinalize();
+              }}
+              disabled={loading || (step === 'rooms' && !selectedRoom) || (step === 'datetime' && !selectedTimeRange) || (step === 'confirm' && !userName)}
+              className={`w-full py-5 rounded-[24px] font-bold text-[16px] flex items-center justify-center gap-3 transition-all active:scale-[0.97] shadow-lg ${loading || (step === 'rooms' && !selectedRoom) || (step === 'datetime' && !selectedTimeRange) || (step === 'confirm' && !userName) ? 'bg-slate-200 text-slate-400' : 'bg-[#00AEEF] text-white shadow-[#00AEEF]/20'}`}
+            >
+              {loading ? (
+                <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+              ) : (
+                <>
+                  {step === 'confirm' ? 'Finalizar Reserva' : 'Próximo Passo'} 
+                  <ArrowRight className="w-5 h-5" />
+                </>
+              )}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

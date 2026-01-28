@@ -3,28 +3,36 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reserva Betânia - Assistente</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Reserva Betânia - Corporate</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body { 
+          font-family: 'Inter', sans-serif; 
+          background-color: #F8FAFC;
+          color: #1E293B;
+          -webkit-tap-highlight-color: transparent;
+        }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-        #root:empty::before {
-            content: 'Carregando aplicação...';
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            color: #64748b;
-            font-size: 14px;
+        
+        @keyframes slideInFromRight {
+          from { transform: translateX(20px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
         }
-        .line-clamp-2 {
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
+        .animate-in {
+          animation-fill-mode: both;
+        }
+        .slide-in-from-right-4 {
+          animation: slideInFromRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .slide-in-from-bottom-4 {
+          animation: slideInFromBottom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slideInFromBottom {
+          from { transform: translateY(20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
         }
     </style>
     <script>
@@ -43,9 +51,11 @@
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
-<body class="bg-slate-50 text-slate-900">
+<body>
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>
