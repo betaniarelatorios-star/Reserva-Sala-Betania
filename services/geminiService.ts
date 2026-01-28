@@ -7,12 +7,8 @@ export class ChatService {
   private ai: GoogleGenAI;
 
   constructor() {
-    // Busca a API KEY do ambiente injetado ou do window.process definido no HTML
-    const apiKey = (typeof window !== 'undefined' && (window as any).process?.env?.API_KEY) || 
-                   (typeof process !== 'undefined' && process.env?.API_KEY) || 
-                   '';
-                   
-    this.ai = new GoogleGenAI({ apiKey: apiKey as string });
+    // Fix: Using correct named parameter for initialization with process.env.API_KEY
+    this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
   }
 
   private checkAvailabilityTool: FunctionDeclaration = {
@@ -32,9 +28,10 @@ export class ChatService {
 
   async sendMessage(message: string): Promise<any> {
     try {
+      // Fix: Using gemini-3-pro-preview for complex reasoning and function calling
       const response = await this.ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [{ role: "user", parts: [{ text: message }] }],
+        model: "gemini-3-pro-preview",
+        contents: message,
         config: {
           systemInstruction: SYSTEM_PROMPT,
           tools: [{ functionDeclarations: [this.checkAvailabilityTool] }],
@@ -50,7 +47,7 @@ export class ChatService {
           const isAvailable = conflict === null;
           
           const secondResponse = await this.ai.models.generateContent({
-            model: "gemini-3-flash-preview",
+            model: "gemini-3-pro-preview",
             contents: [
               { role: "user", parts: [{ text: message }] },
               { role: "model", parts: [

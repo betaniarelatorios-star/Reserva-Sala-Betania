@@ -28,6 +28,11 @@ export class ReservationService {
     return text ? JSON.parse(text) : [];
   }
 
+  // Fix: Added getRooms static method to return the list of rooms
+  static async getRooms(): Promise<Room[]> {
+    return ROOMS;
+  }
+
   static async checkAvailability(roomName: string, date: string, start: string, end: string): Promise<Reservation | null> {
     const query = `reservas?sala=eq.${encodeURIComponent(roomName)}&data=eq.${date}`;
     const existing: Reservation[] = await this.fetchSupabase('GET', query);
