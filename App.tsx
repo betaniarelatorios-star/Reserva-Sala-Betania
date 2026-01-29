@@ -33,14 +33,14 @@ const App: React.FC = () => {
   const dateStripRef = useRef<HTMLDivElement>(null);
   const [unavailableReservations, setUnavailableReservations] = useState<Reservation[]>([]);
 
-  // Cores de contraste refinadas para o modo escuro
+  // Paleta de cores refinada para contraste máximo
   const BRAND_COLOR = "#01AAFF";
-  const DARK_BACKGROUND = "#1E1E1E"; 
-  const DARK_SURFACE = "#2A2A2A"; // Elevado para melhor contraste
-  const DARK_BORDER = "#404040"; // Mais visível
-  const LIGHT_TEXT = "#FFFFFF"; 
-  const MEDIUM_TEXT = "#B0B0B0"; // Mais claro para legibilidade
-  const LIGHT_GRAY_BG = "#333333"; 
+  const DARK_BACKGROUND = "#0D0D0D"; // Fundo mais profundo
+  const DARK_SURFACE = "#1A1A1A";    // Cards com elevação sutil
+  const DARK_BORDER = "#2E2E2E";     // Bordas mais definidas
+  const LIGHT_TEXT = "#FFFFFF";      // Texto primário puro
+  const MEDIUM_TEXT = "#A3A3A3";     // Texto secundário nítido
+  const LIGHT_GRAY_BG = "#262626";   // Fundos de destaque internos
 
   const fetchRooms = async () => {
     try {
@@ -198,7 +198,6 @@ const App: React.FC = () => {
              ))}
            </div>
         </div>
-        {/* Placeholder vazio para manter o progresso centralizado */}
         <div className="w-10 h-10"></div>
       </div>
       <h1 className={`text-3xl font-extrabold ${LIGHT_TEXT} mb-2`}>{title}</h1>
@@ -216,16 +215,16 @@ const App: React.FC = () => {
               {loadingRooms ? (
                 <div className="flex flex-col items-center py-20 gap-4">
                   <Loader2 className="w-10 h-10 animate-spin" style={{ color: BRAND_COLOR }} />
-                  <p className="text-slate-500 font-bold text-xs uppercase">Carregando salas...</p>
+                  <p className={`${MEDIUM_TEXT} font-bold text-xs uppercase`}>Carregando salas...</p>
                 </div>
               ) : (
                 rooms.map((room) => (
                   <div 
                     key={room.id}
                     onClick={() => { setSelectedRoom(room); setSelectedTimeRange(null); setError(null); }}
-                    className={`flex ${DARK_SURFACE} rounded-[28px] p-4 gap-4 border-2 transition-all cursor-pointer ${selectedRoom?.id === room.id ? `border-[${BRAND_COLOR}] shadow-[0_0_20px_rgba(1,170,255,0.15)]` : `border-transparent shadow-lg`}`}
+                    className={`flex ${DARK_SURFACE} rounded-[28px] p-4 gap-4 border-2 transition-all cursor-pointer ${selectedRoom?.id === room.id ? `border-[${BRAND_COLOR}] shadow-[0_0_30px_rgba(1,170,255,0.2)]` : `border-transparent shadow-lg`}`}
                   >
-                    <div className={`w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 bg-black/20 border ${DARK_BORDER}`}>
+                    <div className={`w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 bg-black/40 border ${DARK_BORDER}`}>
                       <img src={room.image} className="w-full h-full object-cover" alt={room.name} />
                     </div>
                     <div className="flex-1 py-1">
@@ -236,7 +235,7 @@ const App: React.FC = () => {
                       </div>
                       <div className="flex gap-2">
                         {room.tags?.slice(0, 2).map(tag => (
-                          <span key={tag} className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${LIGHT_GRAY_BG} ${MEDIUM_TEXT} uppercase`}>{tag}</span>
+                          <span key={tag} className={`px-2.5 py-1 rounded-lg text-[9px] font-black ${LIGHT_GRAY_BG} ${MEDIUM_TEXT} uppercase tracking-tight`}>{tag}</span>
                         ))}
                       </div>
                     </div>
@@ -266,7 +265,7 @@ const App: React.FC = () => {
                      <span className="text-[10px] font-black uppercase" style={{ color: day.full === selectedDate ? BRAND_COLOR : MEDIUM_TEXT }}>{day.isToday ? 'Hoje' : day.label}</span>
                      <button 
                         onClick={() => { setSelectedDate(day.full); setSelectedTimeRange(null); setError(null); }}
-                        className={`w-14 h-14 rounded-full flex flex-col items-center justify-center font-bold text-[18px] transition-all duration-300 ${day.full === selectedDate ? 'text-white shadow-xl scale-110' : `${LIGHT_TEXT} ${DARK_SURFACE} border ${DARK_BORDER}`}`}
+                        className={`w-14 h-14 rounded-full flex flex-col items-center justify-center font-bold text-[18px] transition-all duration-300 ${day.full === selectedDate ? 'text-white shadow-[0_0_20px_rgba(1,170,255,0.4)] scale-110' : `${LIGHT_TEXT} ${DARK_SURFACE} border ${DARK_BORDER}`}`}
                         style={{ backgroundColor: day.full === selectedDate ? BRAND_COLOR : DARK_SURFACE }}
                      >
                        {day.num}
@@ -290,7 +289,7 @@ const App: React.FC = () => {
                </div>
 
                {error && (
-                 <div className="mb-6 p-4 bg-red-900/30 border border-red-500/50 rounded-2xl flex items-center gap-3 text-red-300 text-sm">
+                 <div className="mb-6 p-4 bg-red-900/30 border border-red-500/50 rounded-2xl flex items-center gap-3 text-red-200 text-sm">
                     <AlertCircle className="w-5 h-5" /> {error}
                  </div>
                )}
@@ -311,7 +310,7 @@ const App: React.FC = () => {
                               key={slot}
                               onClick={() => handleTimeClick(slot)}
                               disabled={isUnavailable}
-                              className={`py-4 rounded-2xl text-[15px] font-bold transition-all border ${active ? 'text-white border-transparent' : isUnavailable ? `bg-white/5 border-transparent opacity-20 cursor-not-allowed` : `${DARK_SURFACE} border-[${DARK_BORDER}] ${LIGHT_TEXT}`}`}
+                              className={`py-4 rounded-2xl text-[15px] font-bold transition-all border ${active ? 'text-white border-transparent' : isUnavailable ? `bg-white/5 border-transparent opacity-20 cursor-not-allowed` : `${DARK_SURFACE} border-[${DARK_BORDER}] ${LIGHT_TEXT} hover:border-slate-500`}`}
                               style={{ backgroundColor: active ? BRAND_COLOR : undefined }}
                             >
                               {slot}
@@ -332,7 +331,7 @@ const App: React.FC = () => {
             <div className="px-6 space-y-6">
               <div className={`${DARK_SURFACE} rounded-[32px] p-6 space-y-8 border ${DARK_BORDER} shadow-xl`}>
                 <div className="flex items-center gap-4">
-                  <div className={`w-16 h-16 rounded-2xl overflow-hidden bg-black/20 border ${DARK_BORDER}`}>
+                  <div className={`w-16 h-16 rounded-2xl overflow-hidden bg-black/40 border ${DARK_BORDER}`}>
                     <img src={selectedRoom?.image} className="w-full h-full object-cover" alt="" />
                   </div>
                   <h3 className={`text-xl font-bold ${LIGHT_TEXT}`}>{selectedRoom?.name}</h3>
@@ -349,8 +348,8 @@ const App: React.FC = () => {
                 </div>
               </div>
               <div className="space-y-4">
-                <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} placeholder="Responsável" className={`w-full ${DARK_SURFACE} border ${DARK_BORDER} rounded-2xl px-6 py-5 text-sm focus:outline-none focus:border-[${BRAND_COLOR}] ${LIGHT_TEXT} placeholder:text-slate-500 shadow-xl`} />
-                <textarea value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="Motivo (Opcional)" className={`w-full ${DARK_SURFACE} border ${DARK_BORDER} rounded-2xl px-6 py-5 text-sm focus:outline-none focus:border-[${BRAND_COLOR}] ${LIGHT_TEXT} placeholder:text-slate-500 shadow-xl min-h-[100px]`} />
+                <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} placeholder="Responsável" className={`w-full ${DARK_SURFACE} border ${DARK_BORDER} rounded-2xl px-6 py-5 text-sm focus:outline-none focus:border-[${BRAND_COLOR}] ${LIGHT_TEXT} placeholder:text-slate-600 shadow-xl`} />
+                <textarea value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="Motivo (Opcional)" className={`w-full ${DARK_SURFACE} border ${DARK_BORDER} rounded-2xl px-6 py-5 text-sm focus:outline-none focus:border-[${BRAND_COLOR}] ${LIGHT_TEXT} placeholder:text-slate-600 shadow-xl min-h-[100px]`} />
               </div>
             </div>
           </div>
@@ -358,18 +357,18 @@ const App: React.FC = () => {
 
         {step === 'success' && (
           <div className="flex flex-col items-center justify-center px-8 text-center pt-20 animate-in zoom-in duration-500">
-             <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center mb-8 shadow-2xl shadow-emerald-500/20">
+             <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center mb-8 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
                 <CheckCircle2 className="w-12 h-12 text-white" />
              </div>
              <h2 className={`text-3xl font-black ${LIGHT_TEXT} mb-4 uppercase`}>Tudo certo!</h2>
              <p className={`text-base mb-12 ${MEDIUM_TEXT}`}>Sua reserva na <b>{selectedRoom?.name}</b> foi confirmada com sucesso.</p>
-             <button onClick={() => { setStep('rooms'); setSelectedRoom(null); setSelectedTimeRange(null); }} className={`w-full py-5 ${DARK_SURFACE} border ${DARK_BORDER} ${LIGHT_TEXT} rounded-2xl font-bold uppercase tracking-widest shadow-xl`}>Voltar ao Início</button>
+             <button onClick={() => { setStep('rooms'); setSelectedRoom(null); setSelectedTimeRange(null); }} className={`w-full py-5 ${DARK_SURFACE} border ${DARK_BORDER} ${LIGHT_TEXT} rounded-2xl font-bold uppercase tracking-widest shadow-xl active:scale-95`}>Voltar ao Início</button>
           </div>
         )}
       </div>
 
       {isDatePickerOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
           <div className={`${DARK_SURFACE} w-full max-w-sm rounded-[32px] shadow-2xl p-6 border ${DARK_BORDER}`}>
              <div className="flex items-center justify-between mb-6">
                <h3 className={`font-bold ${LIGHT_TEXT}`}>Selecione a Data</h3>
@@ -381,7 +380,7 @@ const App: React.FC = () => {
       )}
 
       {step !== 'success' && (
-        <div className={`fixed bottom-0 left-0 right-0 p-6 ${DARK_BACKGROUND}/90 backdrop-blur-lg border-t ${DARK_BORDER} z-50 flex justify-center`}>
+        <div className={`fixed bottom-0 left-0 right-0 p-6 ${DARK_BACKGROUND}/95 backdrop-blur-xl border-t ${DARK_BORDER} z-50 flex justify-center`}>
           <div className="max-w-2xl w-full">
             <button 
               onClick={() => {
@@ -392,8 +391,8 @@ const App: React.FC = () => {
               disabled={loading || (step === 'rooms' && !selectedRoom) || (step === 'datetime' && !selectedTimeRange?.end) || (step === 'confirm' && !userName)}
               className="w-full py-5 rounded-[24px] font-black text-[15px] uppercase tracking-widest flex items-center justify-center gap-3 transition-all active:scale-[0.97] shadow-2xl"
               style={{ 
-                backgroundColor: (loading || (step === 'rooms' && !selectedRoom) || (step === 'datetime' && !selectedTimeRange?.end) || (step === 'confirm' && !userName)) ? DARK_BORDER : BRAND_COLOR,
-                color: (loading || (step === 'rooms' && !selectedRoom) || (step === 'datetime' && !selectedTimeRange?.end) || (step === 'confirm' && !userName)) ? MEDIUM_TEXT : 'white'
+                backgroundColor: (loading || (step === 'rooms' && !selectedRoom) || (step === 'datetime' && !selectedTimeRange?.end) || (step === 'confirm' && !userName)) ? LIGHT_GRAY_BG : BRAND_COLOR,
+                color: (loading || (step === 'rooms' && !selectedRoom) || (step === 'datetime' && !selectedTimeRange?.end) || (step === 'confirm' && !userName)) ? "#555" : 'white'
               }}
             >
               {loading ? <Loader2 className="animate-spin" /> : <>{step === 'confirm' ? 'Finalizar Reserva' : 'Continuar'} <ArrowRight className="w-5 h-5" /></>}

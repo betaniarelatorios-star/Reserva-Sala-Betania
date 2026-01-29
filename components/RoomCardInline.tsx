@@ -10,11 +10,11 @@ interface RoomCardInlineProps {
 
 const RoomCardInline: React.FC<RoomCardInlineProps> = ({ room, onSelect }) => {
   const BRAND_COLOR = "#01AAFF";
-  const DARK_SURFACE = "#2A2A2A"; 
-  const DARK_BORDER = "#404040"; 
+  const DARK_SURFACE = "#1A1A1A"; 
+  const DARK_BORDER = "#2E2E2E"; 
   const LIGHT_TEXT = "#FFFFFF"; 
-  const MEDIUM_TEXT = "#B0B0B0"; 
-  const LIGHT_GRAY_BG = "#333333"; 
+  const MEDIUM_TEXT = "#A3A3A3"; 
+  const LIGHT_GRAY_BG = "#262626"; 
   
   return (
     <div 
@@ -36,11 +36,11 @@ const RoomCardInline: React.FC<RoomCardInlineProps> = ({ room, onSelect }) => {
       </div>
 
       <div className="w-[80px] flex flex-shrink-0 flex-col gap-2">
-        <div className={`h-[60px] rounded-xl overflow-hidden bg-black/20 border ${DARK_BORDER}`}>
+        <div className={`h-[60px] rounded-xl overflow-hidden bg-black/40 border ${DARK_BORDER}`}>
           <img src={room.image} alt={room.name} className="w-full h-full object-cover" />
         </div>
         <button 
-          className="w-full text-white font-black py-1.5 rounded-lg text-[9px] uppercase tracking-tighter"
+          className="w-full text-white font-black py-1.5 rounded-lg text-[9px] uppercase tracking-tighter shadow-md active:scale-95 transition-transform"
           style={{ backgroundColor: BRAND_COLOR }}
         >
           Reserva
