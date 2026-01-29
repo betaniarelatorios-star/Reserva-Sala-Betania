@@ -33,6 +33,8 @@ const App: React.FC = () => {
   const [lastReservation, setLastReservation] = useState<Reservation | null>(null);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const dateStripRef = useRef<HTMLDivElement>(null);
+  const [unavailableReservations, setUnavailableReservations] = useState<Reservation[]>([]);
+
 
   // Busca inicial das salas
   const fetchRooms = async () => {
@@ -96,6 +98,33 @@ const App: React.FC = () => {
     }
   }, [step, selectedDate]);
 
+  // Efeito para buscar as reservas da sala e data selecionadas
+  useEffect(() => {
+    const fetchUnavailable = async () => {
+      if (selectedRoom && selectedDate) {
+        console.log(`[App] Buscando reservas para Sala: ${selectedRoom.name}, Data: ${selectedDate}`);
+        try {
+          // Limpa o erro anterior antes de uma nova busca
+          setError(null); 
+          const reservations = await ReservationService.getReservationsByRoomAndDate(selectedRoom.name, selectedDate);
+          setUnavailableReservations(reservations);
+          console.log(`[App] Reservas indisponíveis carregadas (${selectedRoom.name}, ${selectedDate}):`, reservations);
+        } catch (err) {
+          console.error("[App] Falha ao buscar horários indisponíveis:", err);
+          setError("Não foi possível verificar a disponibilidade. Verifique sua conexão com a internet ou tente novamente mais tarde.");
+          setUnavailableReservations([]);
+        }
+      } else {
+        setUnavailableReservations([]);
+        // Limpa erros relacionados à disponibilidade se a sala ou data não estiverem selecionadas
+        setError(null); 
+        console.log("[App] selectedRoom ou selectedDate não definidos. Limpando reservas indisponíveis.");
+      }
+    };
+    fetchUnavailable();
+  }, [selectedRoom, selectedDate]);
+
+
   const timeSlots = {
     manha: ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30'],
     tarde: ['13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'],
@@ -106,8 +135,34 @@ const App: React.FC = () => {
     return [...timeSlots.manha, ...timeSlots.tarde, ...timeSlots.noite];
   }, []);
 
+  const getUnavailableInfo = (slot: string) => {
+    if (!selectedRoom || !selectedDate || !unavailableReservations.length) return { isUnavailable: false, reservedBy: null, reservationEnd: null };
+
+    const slotStart = new Date(`${selectedDate}T${slot}:00`);
+    const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000); // Assuming 30-minute slot duration
+
+    for (const res of unavailableReservations) {
+      const resStart = new Date(`${selectedDate}T${res.inicio}:00`);
+      const resEnd = new Date(`${selectedDate}T${res.fim}:00`);
+
+      // Check for overlap: [resStart, resEnd) vs [slotStart, slotEnd)
+      // An overlap means that the slot is part of an existing reservation.
+      if (slotStart.getTime() < resEnd.getTime() && slotEnd.getTime() > resStart.getTime()) {
+        // console.log(`[getUnavailableInfo] Slot ${slot} conflita com reserva de ${res.nome} (${res.inicio}-${res.fim})`);
+        return { isUnavailable: true, reservedBy: res.nome, reservationEnd: res.fim };
+      }
+    }
+    return { isUnavailable: false, reservedBy: null, reservationEnd: null };
+  };
+
   const handleTimeClick = (slot: string) => {
-    setError(null);
+    setError(null); // Always clear previous errors when a new slot is clicked
+    const { isUnavailable, reservedBy, reservationEnd } = getUnavailableInfo(slot);
+    if (isUnavailable) {
+      setError(`Este horário (${slot}) já está reservado por ${reservedBy || 'alguém'} até ${reservationEnd || ''}. Por favor, escolha outro.`);
+      return; 
+    }
+
     if (!selectedTimeRange || (selectedTimeRange.start && selectedTimeRange.end)) {
       setSelectedTimeRange({ start: slot, end: null });
     } else {
@@ -120,9 +175,14 @@ const App: React.FC = () => {
       } else if (endIdx === startIdx) {
         const nextIdx = startIdx + 1;
         if (nextIdx < allSlotsSorted.length) {
+          // If the user clicks the same slot twice, assume a 30-min booking.
           setSelectedTimeRange({ start: startTime, end: allSlotsSorted[nextIdx] });
+        } else {
+          // If it's the very last slot, cannot define a 30 min range, reset.
+          setSelectedTimeRange({ start: slot, end: null });
         }
       } else {
+        // Clicou num horário anterior ao início, redefine o início
         setSelectedTimeRange({ start: slot, end: null });
       }
     }
@@ -130,9 +190,11 @@ const App: React.FC = () => {
 
   const isSlotSelected = (slot: string) => {
     if (!selectedTimeRange) return false;
+    // Check if the slot is the start or end of the current selection
     if (selectedTimeRange.start === slot) return true;
     if (selectedTimeRange.end === slot) return true;
     
+    // Check if the slot is within the selected range
     if (selectedTimeRange.start && selectedTimeRange.end) {
       const startIdx = allSlotsSorted.indexOf(selectedTimeRange.start);
       const endIdx = allSlotsSorted.indexOf(selectedTimeRange.end);
@@ -142,11 +204,48 @@ const App: React.FC = () => {
     return false;
   };
 
+  // Check if the currently selected range (start to end) overlaps with any existing reservations
+  const isSelectedRangeUnavailable = useMemo(() => {
+    // If no room, date, or end time selected, or no existing reservations, it's not unavailable.
+    if (!selectedTimeRange || !selectedTimeRange.end || !selectedRoom || !selectedDate || !unavailableReservations.length) {
+      return false;
+    }
+
+    const userStart = new Date(`${selectedDate}T${selectedTimeRange.start}:00`);
+    const userEnd = new Date(`${selectedDate}T${selectedTimeRange.end}:00`);
+
+    for (const res of unavailableReservations) {
+      const resStart = new Date(`${selectedDate}T${res.inicio}:00`);
+      const resEnd = new Date(`${selectedDate}T${res.fim}:00`);
+      // Overlap condition: (StartA < EndB) && (EndA > StartB)
+      if (userStart.getTime() < resEnd.getTime() && userEnd.getTime() > resStart.getTime()) {
+        console.log(`[isSelectedRangeUnavailable] Conflito detectado entre seleção (${selectedTimeRange.start}-${selectedTimeRange.end}) e reserva existente (${res.nome} ${res.inicio}-${res.fim})`);
+        return true;
+      }
+    }
+    return false;
+  }, [selectedTimeRange, selectedRoom, selectedDate, unavailableReservations]);
+
+
   const handleFinalize = async () => {
-    if (!selectedRoom || !selectedTimeRange || !selectedTimeRange.end || !userName) return;
+    // Basic validation
+    if (!selectedRoom || !selectedTimeRange || !selectedTimeRange.end || !userName) {
+      setError("Por favor, preencha todos os campos obrigatórios (sala, horário e seu nome).");
+      return;
+    }
+    
     setLoading(true);
     setError(null);
+
+    // Re-check for availability right before finalizing to catch any last-minute conflicts
+    if (isSelectedRangeUnavailable) {
+      setError("O período selecionado se sobrepõe a uma reserva existente. Por favor, ajuste o horário.");
+      setLoading(false);
+      return;
+    }
+
     try {
+      // Final check with service for any exact overlaps that might have been missed or changed
       const conflict = await ReservationService.checkAvailability(
         selectedRoom.name,
         selectedDate,
@@ -155,8 +254,8 @@ const App: React.FC = () => {
       );
 
       if (conflict) {
-        setError(`Esta sala já foi reservada por ${conflict.nome} neste horário.`);
-        setStep('datetime');
+        setError(`Esta sala já foi reservada por ${conflict.nome} neste horário (${selectedTimeRange.start} - ${selectedTimeRange.end}).`);
+        setStep('datetime'); // Send user back to datetime selection if conflict found
         setLoading(false);
         return;
       }
@@ -227,7 +326,13 @@ const App: React.FC = () => {
                 rooms.map((room) => (
                   <div 
                     key={room.id}
-                    onClick={() => setSelectedRoom(room)}
+                    onClick={() => {
+                      setSelectedRoom(room);
+                      console.log(`[App] Sala selecionada: ID=${room.id}, Nome=${room.name}`);
+                      // Clear time selection and error when room changes
+                      setSelectedTimeRange(null);
+                      setError(null);
+                    }}
                     className={`group relative flex bg-white rounded-[28px] p-4 gap-4 border-2 transition-all cursor-pointer shadow-sm hover:shadow-md ${selectedRoom?.id === room.id ? 'border-[#00AEEF]' : 'border-transparent'}`}
                   >
                     <div className="w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 bg-slate-100 border border-slate-50">
@@ -288,7 +393,8 @@ const App: React.FC = () => {
                      <button 
                         onClick={() => {
                           setSelectedDate(day.full);
-                          setSelectedTimeRange(null);
+                          setSelectedTimeRange(null); // Clear time selection when date changes
+                          setError(null); // Clear any existing errors
                         }}
                         className={`w-14 h-14 rounded-full flex flex-col items-center justify-center font-bold text-[18px] transition-all duration-300 relative ${day.full === selectedDate ? 'bg-[#00AEEF] text-white shadow-xl shadow-[#00AEEF]/25 scale-110' : 'text-slate-600 bg-white shadow-sm border border-slate-100 hover:border-[#00AEEF]/30'}`}
                      >
@@ -340,15 +446,25 @@ const App: React.FC = () => {
                         <div className="h-[1px] flex-1 bg-gradient-to-r from-slate-200 to-transparent"></div>
                       </div>
                       <div className="grid grid-cols-4 gap-3">
-                        {slots.map(slot => (
-                          <button 
-                            key={slot}
-                            onClick={() => handleTimeClick(slot)}
-                            className={`py-4 rounded-2xl text-[15px] font-bold transition-all duration-200 border ${isSlotSelected(slot) ? 'bg-[#00AEEF] border-[#00AEEF] text-white shadow-lg shadow-[#00AEEF]/20 translate-y-[-2px]' : 'bg-white border-slate-100 text-slate-500 hover:border-slate-300 hover:bg-slate-50'}`}
-                          >
-                            {slot}
-                          </button>
-                        ))}
+                        {slots.map(slot => {
+                          const { isUnavailable, reservedBy, reservationEnd } = getUnavailableInfo(slot);
+                          return (
+                            <button 
+                              key={slot}
+                              onClick={() => handleTimeClick(slot)}
+                              disabled={isUnavailable}
+                              title={isUnavailable ? `Reservado por ${reservedBy || 'alguém'} até ${reservationEnd || ''}` : undefined}
+                              className={`
+                                py-4 rounded-2xl text-[15px] font-bold transition-all duration-200 border 
+                                ${isSlotSelected(slot) ? 'bg-[#00AEEF] border-[#00AEEF] text-white shadow-lg shadow-[#00AEEF]/20 translate-y-[-2px]' : 
+                                  isUnavailable ? 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed opacity-70' : 
+                                  'bg-white border-slate-100 text-slate-500 hover:border-slate-300 hover:bg-slate-50'}
+                              `}
+                            >
+                              {slot}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
@@ -486,7 +602,8 @@ const App: React.FC = () => {
                   onChange={(e) => {
                     setSelectedDate(e.target.value);
                     setIsDatePickerOpen(false);
-                    setSelectedTimeRange(null);
+                    setSelectedTimeRange(null); // Clear time selection on date change
+                    setError(null); // Clear errors on date change
                   }}
                   className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-5 text-lg font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-[#00AEEF]/10 transition-all"
                 />
@@ -514,8 +631,23 @@ const App: React.FC = () => {
                 else if (step === 'datetime' && selectedTimeRange && selectedTimeRange.end) setStep('confirm');
                 else if (step === 'confirm') handleFinalize();
               }}
-              disabled={loading || (step === 'rooms' && !selectedRoom) || (step === 'datetime' && (!selectedTimeRange || !selectedTimeRange.end)) || (step === 'confirm' && !userName)}
-              className={`w-full py-5 rounded-[24px] font-bold text-[16px] flex items-center justify-center gap-3 transition-all active:scale-[0.97] shadow-lg ${loading || (step === 'rooms' && !selectedRoom) || (step === 'datetime' && (!selectedTimeRange || !selectedTimeRange.end)) || (step === 'confirm' && !userName) ? 'bg-slate-200 text-slate-400' : 'bg-[#00AEEF] text-white shadow-[#00AEEF]/20'}`}
+              disabled={
+                loading || 
+                isSelectedRangeUnavailable || 
+                (selectedTimeRange && selectedTimeRange.start && getUnavailableInfo(selectedTimeRange.start).isUnavailable) || // Disable if start slot is unavailable
+                (step === 'rooms' && !selectedRoom) || 
+                (step === 'datetime' && (!selectedTimeRange || !selectedTimeRange.end)) || 
+                (step === 'confirm' && !userName)
+              }
+              className={`w-full py-5 rounded-[24px] font-bold text-[16px] flex items-center justify-center gap-3 transition-all active:scale-[0.97] shadow-lg ${
+                loading || 
+                isSelectedRangeUnavailable ||
+                (selectedTimeRange && selectedTimeRange.start && getUnavailableInfo(selectedTimeRange.start).isUnavailable) || // Also disable if start slot is unavailable
+                (step === 'rooms' && !selectedRoom) || 
+                (step === 'datetime' && (!selectedTimeRange || !selectedTimeRange.end)) || 
+                (step === 'confirm' && !userName) 
+                ? 'bg-slate-200 text-slate-400' : 'bg-[#00AEEF] text-white shadow-[#00AEEF]/20'
+              }`}
             >
               {loading ? (
                 <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>

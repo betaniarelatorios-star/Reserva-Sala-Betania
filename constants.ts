@@ -2,7 +2,7 @@
 import { Room } from './types.ts';
 
 export const SUPABASE_URL = 'https://hywkalfphfxjbhdhgvyj.supabase.co';
-export const SUPABASE_KEY = 'sb_publishable_74-K2ysRZypEcc9eX9Pbcw_feDvGtaN';
+export const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5d2thbGZwaGZ4amJoZGhndnlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk1MDk1MTksImV4cCI6MjA4NTA4NTUxOX0.nUX5IK_RSsLz6xJiI06eAOAgWueiCWXz5k22Uaq6s8s';
 
 export const ROOMS: Room[] = [
   { 
@@ -53,7 +53,7 @@ export const ROOMS: Room[] = [
 ];
 
 export const SYSTEM_PROMPT = `Você é o assistente virtual de reserva de salas da Betânia Aplicativos.
-Seu tom de voz deve ser: Educado, Eficiente e Direto.
+Seu tone de voz deve ser: Educado, Eficiente e Direto.
 
 DIRETRIZES DE PERSONA:
 1. Seja cordial, mas não prolixo. Vá direto ao ponto.
