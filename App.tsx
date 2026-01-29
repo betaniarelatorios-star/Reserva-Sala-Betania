@@ -198,9 +198,8 @@ const App: React.FC = () => {
              ))}
            </div>
         </div>
-        <div className={`w-10 h-10 rounded-full ${DARK_SURFACE} flex items-center justify-center text-slate-300 border ${DARK_BORDER}`}>
-          <Info className="w-5 h-5" />
-        </div>
+        {/* Placeholder vazio para manter o progresso centralizado */}
+        <div className="w-10 h-10"></div>
       </div>
       <h1 className={`text-3xl font-extrabold ${LIGHT_TEXT} mb-2`}>{title}</h1>
       <p className={`text-sm leading-relaxed ${MEDIUM_TEXT}`}>{subtitle}</p>

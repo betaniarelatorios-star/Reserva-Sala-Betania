@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, X, Clock, Info } from 'lucide-react';
 
@@ -72,9 +71,8 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ onClose, onSelect }) => {
             <X className={`w-6 h-6 ${MEDIUM_TEXT}`} />
           </button>
           <h2 className={`font-bold ${LIGHT_TEXT} text-lg`}>Reserva de Sala</h2>
-          <button className={`p-2 hover:bg-[${LIGHT_GRAY_BG}] rounded-full transition-colors`}>
-            <Info className={`w-5 h-5 ${LIGHT_TEXT}`} />
-          </button>
+          {/* Placeholder vazio para manter o alinhamento */}
+          <div className="w-10 h-10"></div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
