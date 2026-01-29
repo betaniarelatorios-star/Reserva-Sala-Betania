@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { Send, AlertCircle, ArrowRight, Clock, User, Calendar, FileText } from 'lucide-react';
 import { ReservationService } from '../services/reservationService.ts';
@@ -16,6 +17,15 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
   const [alternatives, setAlternatives] = useState<Room[]>([]);
   const [today] = useState(new Date().toISOString().split('T')[0]);
   
+  const BRAND_COLOR = "#01AAFF";
+
+  const DARK_BACKGROUND = "#1E1E1E"; // Main background
+  const DARK_SURFACE = "#2C2C2C"; // For cards and containers
+  const DARK_BORDER = "#3A3A3A"; // For subtle borders
+  const LIGHT_TEXT = "#FAFAFA"; // Main text
+  const MEDIUM_TEXT = "#A0A0A0"; // Secondary text
+  const LIGHT_GRAY_BG = "#333333"; // Slightly lighter dark surface
+
   const [formData, setFormData] = useState({
     name: '',
     date: today,
@@ -74,8 +84,9 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
 
     setLoading(true);
     try {
+      // Fix: Use room.id instead of room.name to match database schema and API expectations
       const conflict = await ReservationService.checkAvailability(
-        room.name,
+        room.id,
         formData.date,
         formData.start,
         formData.end
@@ -84,10 +95,11 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
       if (conflict) {
         setError(
           <span className="text-[12px] leading-snug">
-            A {room.name} já possui uma reserva para este período realizada por <span className="font-bold text-red-700">{conflict.nome || 'alguém'}</span> até às <span className="font-bold text-red-700">{formatTime(conflict.fim)}</span>.
+            A {room.name} já possui uma reserva para este período realizada por <span className="font-bold text-red-400">{conflict.nome || 'alguém'}</span> até às <span className="font-bold text-red-400">{formatTime(conflict.fim)}</span>.
           </span>
         );
         
+        // Fix: getAvailableRooms is now implemented in ReservationService
         const altRooms = await ReservationService.getAvailableRooms(
           formData.date,
           formData.start,
@@ -98,9 +110,10 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
         return;
       }
 
+      // Fix: Save roomId in the 'sala' column for consistency across the application
       const reservation = await ReservationService.createReservation({
         nome: formData.name,
-        sala: room.name,
+        sala: room.id,
         data: formData.date,
         inicio: formData.start,
         fim: formData.end,
@@ -118,16 +131,16 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
   return (
     <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex items-center gap-3">
-        <div className="w-1.5 h-6 bg-slate-900 rounded-full"></div>
+        <div className={`w-1.5 h-6 ${LIGHT_TEXT} rounded-full`}></div>
         <div className="flex flex-col">
-          <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Fluxo de Reserva</span>
-          <h4 className="text-[13px] font-bold text-slate-800 uppercase tracking-tight">Sala {room.name.replace('Sala ', '')}</h4>
+          <span className={`text-[9px] font-black ${MEDIUM_TEXT} uppercase tracking-[0.2em]`}>Fluxo de Reserva</span>
+          <h4 className={`text-[13px] font-bold ${LIGHT_TEXT} uppercase tracking-tight`}>Sala {room.name.replace('Sala ', '')}</h4>
         </div>
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">
+          <label className={`flex items-center gap-2 text-[10px] font-bold ${MEDIUM_TEXT} uppercase tracking-wider ml-1`}>
             <User className="w-3 h-3" /> Responsável
           </label>
           <input 
@@ -136,12 +149,12 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
             required
             value={formData.name}
             onChange={e => setFormData({...formData, name: e.target.value})}
-            className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-4 text-[14px] text-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-100 transition-all placeholder:text-slate-300 shadow-sm"
+            className={`w-full ${DARK_SURFACE} border ${DARK_BORDER} rounded-2xl px-4 py-4 text-[14px] ${LIGHT_TEXT} focus:outline-none focus:ring-4 focus:ring-[${DARK_BORDER}] transition-all placeholder:text-slate-500 shadow-sm`}
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">
+          <label className={`flex items-center gap-2 text-[10px] font-bold ${MEDIUM_TEXT} uppercase tracking-wider ml-1`}>
             <Calendar className="w-3 h-3" /> Data
           </label>
           <input 
@@ -150,13 +163,13 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
             required
             value={formData.date}
             onChange={e => setFormData({...formData, date: e.target.value})}
-            className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-4 text-[14px] text-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-100 transition-all shadow-sm"
+            className={`w-full ${DARK_SURFACE} border ${DARK_BORDER} rounded-2xl px-4 py-4 text-[14px] ${LIGHT_TEXT} focus:outline-none focus:ring-4 focus:ring-[${DARK_BORDER}] transition-all shadow-sm`}
           />
         </div>
 
         <div className="flex gap-4">
           <div className="flex-1 max-w-[130px] space-y-1.5">
-            <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">
+            <label className={`flex items-center gap-2 text-[10px] font-bold ${MEDIUM_TEXT} uppercase tracking-wider ml-1`}>
               <Clock className="w-3 h-3" /> Início
             </label>
             <input 
@@ -164,11 +177,11 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
               required
               value={formData.start}
               onChange={e => setFormData({...formData, start: e.target.value})}
-              className="w-full bg-white border border-slate-200 rounded-2xl px-3 py-4 text-[14px] text-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-100 transition-all shadow-sm"
+              className={`w-full ${DARK_SURFACE} border ${DARK_BORDER} rounded-2xl px-3 py-4 text-[14px] ${LIGHT_TEXT} focus:outline-none focus:ring-4 focus:ring-[${DARK_BORDER}] transition-all shadow-sm`}
             />
           </div>
           <div className="flex-1 max-w-[130px] space-y-1.5">
-            <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">
+            <label className={`flex items-center gap-2 text-[10px] font-bold ${MEDIUM_TEXT} uppercase tracking-wider ml-1`}>
               <Clock className="w-3 h-3" /> Término
             </label>
             <input 
@@ -176,13 +189,13 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
               required
               value={formData.end}
               onChange={e => setFormData({...formData, end: e.target.value})}
-              className="w-full bg-white border border-slate-200 rounded-2xl px-3 py-4 text-[14px] text-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-100 transition-all shadow-sm"
+              className={`w-full ${DARK_SURFACE} border ${DARK_BORDER} rounded-2xl px-3 py-4 text-[14px] ${LIGHT_TEXT} focus:outline-none focus:ring-4 focus:ring-[${DARK_BORDER}] transition-all shadow-sm`}
             />
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">
+          <label className={`flex items-center gap-2 text-[10px] font-bold ${MEDIUM_TEXT} uppercase tracking-wider ml-1`}>
             <FileText className="w-3 h-3" /> Motivo da Reunião
           </label>
           <textarea 
@@ -190,32 +203,32 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
             value={formData.purpose}
             onChange={e => setFormData({...formData, purpose: e.target.value})}
             rows={2}
-            className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-4 text-[14px] text-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-100 transition-all resize-none placeholder:text-slate-300 shadow-sm"
+            className={`w-full ${DARK_SURFACE} border ${DARK_BORDER} rounded-2xl px-4 py-4 text-[14px] ${LIGHT_TEXT} focus:outline-none focus:ring-4 focus:ring-[${DARK_BORDER}] transition-all resize-none placeholder:text-slate-500 shadow-sm`}
           />
         </div>
 
         {error && (
-          <div className="p-4 bg-red-50 border border-red-100 rounded-[22px] space-y-4 animate-in fade-in zoom-in-95">
+          <div className="p-4 bg-red-900/20 border border-red-700 rounded-[22px] space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex gap-3">
               <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-              <div className="text-red-700 font-medium text-[12px] leading-snug">
+              <div className="text-red-400 font-medium text-[12px] leading-snug">
                 {error}
               </div>
             </div>
 
             {alternatives.length > 0 && (
-              <div className="pt-3 border-t border-red-200/30 space-y-2">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Salas livres neste horário:</p>
+              <div className={`pt-3 border-t border-red-700/30 space-y-2`}>
+                <p className={`text-[9px] font-black ${MEDIUM_TEXT} uppercase tracking-widest px-1`}>Salas livres neste horário:</p>
                 <div className="grid grid-cols-1 gap-2">
                   {alternatives.map(alt => (
                     <button
                       key={alt.id}
                       type="button"
                       onClick={() => onSelectAlternative?.(alt)}
-                      className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl transition-all group active:scale-[0.98] shadow-sm text-left"
+                      className={`flex items-center justify-between p-3 ${DARK_BACKGROUND} border ${DARK_BORDER} rounded-xl transition-all group active:scale-[0.98] shadow-sm text-left`}
                     >
-                      <span className="text-[12px] font-bold text-slate-700">{alt.name}</span>
-                      <div className="flex items-center gap-1 text-blue-500 text-[10px] font-bold uppercase tracking-tight">
+                      <span className={`text-[12px] font-bold ${LIGHT_TEXT}`}>{alt.name}</span>
+                      <div className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-tight`} style={{ color: BRAND_COLOR }}>
                         Selecionar <ArrowRight className="w-3 h-3" />
                       </div>
                     </button>
@@ -229,7 +242,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ room, onSuccess, onSe
         <button 
           type="submit"
           disabled={loading}
-          className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4.5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-lg shadow-slate-100 disabled:bg-slate-200 disabled:shadow-none"
+          className={`w-full ${DARK_SURFACE} hover:bg-[${LIGHT_GRAY_BG}] text-white font-bold py-4.5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-lg shadow-slate-900/20 disabled:bg-[${DARK_BORDER}] disabled:shadow-none disabled:text-[${MEDIUM_TEXT}]`}
         >
           {loading ? (
             <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />

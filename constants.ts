@@ -6,7 +6,7 @@ export const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdX
 
 export const ROOMS: Room[] = [
   { 
-    id: 'reunioes', 
+    id: 'unioes', // Sincronizado com o banco
     name: 'Sala de Reuniões', 
     capacity: 10, 
     description: 'Ideal para 10 pessoas. Equipamento de vídeo completo e quadro branco.',
@@ -24,7 +24,7 @@ export const ROOMS: Room[] = [
     image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=300&q=80'
   },
   { 
-    id: 'aconselhamento1', 
+    id: 'elhamento 1', // Sincronizado com o banco
     name: 'Sala Aconselhamento 1', 
     capacity: 3, 
     description: 'Ambiente climatizado com poltronas ergonômicas e iluminação dimerizável.',
@@ -42,7 +42,7 @@ export const ROOMS: Room[] = [
     image: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=300&q=80'
   },
   { 
-    id: 'betageen', 
+    id: 'een', // Sincronizado com o banco
     name: 'Sala Betageen', 
     capacity: 8, 
     description: 'Ideal para brainstormings e dinâmicas criativas com mobiliário modular.',

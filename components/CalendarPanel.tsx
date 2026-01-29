@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+
+import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, X, Clock, Info } from 'lucide-react';
 
 interface CalendarPanelProps {
@@ -9,8 +10,20 @@ interface CalendarPanelProps {
 
 const CalendarPanel: React.FC<CalendarPanelProps> = ({ onClose, onSelect }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDay, setSelectedDay] = useState<number | null>(5);
-  const [selectedSlot, setSelectedSlot] = useState<string | null>("09:00 - 10:00");
+  const [selectedDay, setSelectedDay] = useState<number | null>(null); // Start with no day selected
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null); // Start with no slot selected
+
+  const BRAND_COLOR = "#01AAFF";
+  const BRAND_COLOR_HOVER = "#0099EE"; // Slightly darker for hover
+  const BRAND_COLOR_LIGHT_BG = BRAND_COLOR + '1A'; // 10% opacity
+  const BRAND_COLOR_SHADOW = BRAND_COLOR + '4D'; // 30% opacity for shadow
+
+  const DARK_BACKGROUND = "#1E1E1E"; // Main background
+  const DARK_SURFACE = "#2C2C2C"; // For cards and containers
+  const DARK_BORDER = "#3A3A3A"; // For subtle borders
+  const LIGHT_TEXT = "#FAFAFA"; // Main text
+  const MEDIUM_TEXT = "#A0A0A0"; // Secondary text
+  const LIGHT_GRAY_BG = "#333333"; // Slightly lighter dark surface
 
   const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -27,65 +40,88 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ onClose, onSelect }) => {
 
   const handleConfirm = () => {
     if (selectedDay && selectedSlot) {
-      const formattedDate = `${selectedDay}/${currentDate.getMonth() + 1}/${currentDate.getFullYear()}`;
-      onSelect(formattedDate, selectedSlot);
+      const formattedDate = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`;
+      onSelect(formattedDate, selectedSlot.split(' ')[0]); // Pass only start time
     }
+  };
+
+  // Fix: Add useMemo to React import
+  const currentMonthDays = useMemo(() => {
+    const totalDays = daysInMonth(currentDate.getMonth(), currentDate.getFullYear());
+    const firstDay = firstDayOfMonth(currentDate.getMonth(), currentDate.getFullYear());
+    const daysArray = Array(firstDay).fill(null).concat(Array.from({ length: totalDays }, (_, i) => i + 1));
+    return daysArray;
+  }, [currentDate]);
+
+  const goToPreviousMonth = () => {
+    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    setSelectedDay(null);
+  };
+
+  const goToNextMonth = () => {
+    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    setSelectedDay(null);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/20 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-white w-full max-w-md h-[90vh] sm:h-auto sm:max-h-[90vh] rounded-t-[32px] sm:rounded-[32px] shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 duration-500">
+      <div className={`${DARK_SURFACE} w-full max-w-md h-[90vh] sm:h-auto sm:max-h-[90vh] rounded-t-[32px] sm:rounded-[32px] shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 duration-500`}>
         {/* Header */}
-        <div className="px-6 py-5 flex items-center justify-between border-b border-slate-50">
-          <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
-            <X className="w-6 h-6 text-slate-400" />
+        <div className={`px-6 py-5 flex items-center justify-between border-b ${DARK_BORDER}`}>
+          <button onClick={onClose} className={`p-2 hover:bg-[${LIGHT_GRAY_BG}] rounded-full transition-colors`}>
+            <X className={`w-6 h-6 ${MEDIUM_TEXT}`} />
           </button>
-          <h2 className="font-bold text-slate-800 text-lg">Reserva de Sala</h2>
-          <button className="p-2 hover:bg-slate-50 rounded-full transition-colors">
-            <Info className="w-5 h-5 text-slate-800" />
+          <h2 className={`font-bold ${LIGHT_TEXT} text-lg`}>Reserva de Sala</h2>
+          <button className={`p-2 hover:bg-[${LIGHT_GRAY_BG}] rounded-full transition-colors`}>
+            <Info className={`w-5 h-5 ${LIGHT_TEXT}`} />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
           {/* Calendar Card */}
-          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+          <div className={`${DARK_BACKGROUND} border ${DARK_BORDER} rounded-3xl p-6 shadow-sm`}>
             <div className="flex items-center justify-between mb-8">
-              <button className="p-1 text-slate-400 hover:text-slate-600">
+              <button onClick={goToPreviousMonth} className={`p-1 ${MEDIUM_TEXT} hover:text-slate-200`}>
                 <ChevronLeft className="w-5 h-5" />
               </button>
-              <h3 className="font-bold text-slate-800">
+              <h3 className={`font-bold ${LIGHT_TEXT}`}>
                 {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
               </h3>
-              <button className="p-1 text-slate-400 hover:text-slate-600">
+              <button onClick={goToNextMonth} className={`p-1 ${MEDIUM_TEXT} hover:text-slate-200`}>
                 <ChevronRight className="w-5 h-5" />
               </button>
             </div>
 
             <div className="grid grid-cols-7 gap-y-4 text-center">
               {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
-                <div key={i} className="text-[10px] font-bold text-[#20B2AA] mb-2">{d}</div>
+                <div key={i} className={`text-[10px] font-bold ${MEDIUM_TEXT} mb-2`}>{d}</div>
               ))}
               
-              {/* Fill empty spaces before first day */}
-              {Array.from({ length: firstDayOfMonth(currentDate.getMonth(), currentDate.getFullYear()) }).map((_, i) => (
-                <div key={`empty-${i}`} />
-              ))}
-
-              {Array.from({ length: daysInMonth(currentDate.getMonth(), currentDate.getFullYear()) }).map((_, i) => {
-                const day = i + 1;
+              {currentMonthDays.map((day, i) => {
                 const isSelected = selectedDay === day;
+                const today = new Date();
+                const isPastDay = day !== null && new Date(currentDate.getFullYear(), currentDate.getMonth(), day) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
                 return (
-                  <div key={day} className="flex justify-center">
-                    <button 
-                      onClick={() => setSelectedDay(day)}
-                      className={`w-9 h-9 rounded-full text-sm font-medium transition-all ${
-                        isSelected 
-                          ? 'bg-[#00E5D1] text-white shadow-lg shadow-[#00E5D1]/30' 
-                          : 'text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      {day}
-                    </button>
+                  <div key={i} className="flex justify-center">
+                    {day !== null ? (
+                      <button 
+                        onClick={() => !isPastDay && setSelectedDay(day)}
+                        className={`w-9 h-9 rounded-full text-sm font-medium transition-all ${
+                          isSelected 
+                            ? `text-white shadow-lg` 
+                            : isPastDay
+                              ? `${MEDIUM_TEXT} cursor-not-allowed opacity-60`
+                              : `${LIGHT_TEXT} hover:bg-[${LIGHT_GRAY_BG}]`
+                        }`}
+                        style={{ backgroundColor: isSelected ? BRAND_COLOR : undefined, boxShadow: isSelected ? `0 4px 14px ${BRAND_COLOR_SHADOW}` : undefined }}
+                        disabled={isPastDay}
+                      >
+                        {day}
+                      </button>
+                    ) : (
+                      <div />
+                    )}
                   </div>
                 );
               })}
@@ -95,8 +131,10 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ onClose, onSelect }) => {
           {/* Slots List */}
           <div className="space-y-4">
             <div className="flex flex-col gap-1">
-              <h4 className="font-bold text-slate-800 text-lg">Horários Disponíveis</h4>
-              <p className="text-slate-400 text-sm">Quinta-feira, {selectedDay} de Outubro</p>
+              <h4 className={`font-bold ${LIGHT_TEXT} text-lg`}>Horários Disponíveis</h4>
+              <p className={`${MEDIUM_TEXT} text-sm`}>
+                {selectedDay ? new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedDay).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }) : 'Selecione uma data'}
+              </p>
             </div>
 
             <div className="space-y-3">
@@ -104,17 +142,17 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ onClose, onSelect }) => {
                 <div 
                   key={idx}
                   className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
-                    slot.available ? 'bg-white border-slate-100' : 'bg-slate-50 border-transparent opacity-60'
+                    slot.available ? `${DARK_BACKGROUND} ${DARK_BORDER}` : `${DARK_SURFACE} border-transparent opacity-60`
                   }`}
                 >
                   <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-xl ${slot.available ? 'bg-[#E0FBF9]' : 'bg-slate-100'}`}>
-                      <Clock className={`w-5 h-5 ${slot.available ? 'text-[#00BCD4]' : 'text-slate-400'}`} />
+                    <div className={`p-2 rounded-xl`} style={{ backgroundColor: slot.available ? BRAND_COLOR_LIGHT_BG : LIGHT_GRAY_BG }}>
+                      <Clock className={`w-5 h-5`} style={{ color: slot.available ? BRAND_COLOR : MEDIUM_TEXT }} />
                     </div>
                     <div>
-                      <div className="text-slate-800 font-bold">{slot.time}</div>
-                      <div className={`text-[12px] flex items-center gap-1 ${slot.available ? 'text-[#00BCD4]' : 'text-red-400'}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${slot.available ? 'bg-[#00BCD4]' : 'bg-red-400'}`}></span>
+                      <div className={` ${LIGHT_TEXT} font-bold`}>{slot.time}</div>
+                      <div className={`text-[12px] flex items-center gap-1`} style={{ color: slot.available ? BRAND_COLOR : '#EF4444' }}>
+                        <span className={`w-1.5 h-1.5 rounded-full`} style={{ backgroundColor: slot.available ? BRAND_COLOR : '#EF4444' }}></span>
                         {slot.status}
                       </div>
                     </div>
@@ -123,12 +161,12 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ onClose, onSelect }) => {
                   {slot.available ? (
                     <button 
                       onClick={() => setSelectedSlot(slot.time)}
-                      className={`w-12 h-6 rounded-full relative transition-colors ${selectedSlot === slot.time ? 'bg-[#00E5D1]' : 'bg-slate-200'}`}
+                      className={`w-12 h-6 rounded-full relative transition-colors ${selectedSlot === slot.time ? `bg-[${BRAND_COLOR}]` : `bg-[${DARK_BORDER}]`}`}
                     >
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${selectedSlot === slot.time ? 'right-1' : 'left-1'}`} />
+                      <div className={`absolute top-1 w-4 h-4 ${DARK_SURFACE} rounded-full transition-all ${selectedSlot === slot.time ? 'right-1' : 'left-1'}`} />
                     </button>
                   ) : (
-                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">INDISPONÍVEL</span>
+                    <span className={`text-[10px] font-bold ${MEDIUM_TEXT} uppercase tracking-widest`}>INDISPONÍVEL</span>
                   )}
                 </div>
               ))}
@@ -137,10 +175,12 @@ const CalendarPanel: React.FC<CalendarPanelProps> = ({ onClose, onSelect }) => {
         </div>
 
         {/* Action Button */}
-        <div className="p-6 bg-white border-t border-slate-50">
+        <div className={`p-6 ${DARK_SURFACE} border-t ${DARK_BORDER}`}>
           <button 
             onClick={handleConfirm}
-            className="w-full bg-[#00E5D1] hover:bg-[#00CDBB] text-slate-800 font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-[#00E5D1]/20"
+            disabled={!selectedDay || !selectedSlot}
+            className={`w-full text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg disabled:bg-[${DARK_BORDER}] disabled:shadow-none disabled:text-[${MEDIUM_TEXT}]`}
+            style={{ backgroundColor: (!selectedDay || !selectedSlot) ? undefined : BRAND_COLOR, boxShadow: (!selectedDay || !selectedSlot) ? undefined : `0 4px 14px ${BRAND_COLOR_SHADOW}` }}
           >
             Confirmar Data <ChevronRight className="w-5 h-5" />
           </button>
