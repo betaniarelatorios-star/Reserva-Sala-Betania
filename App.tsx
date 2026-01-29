@@ -117,7 +117,6 @@ const App: React.FC = () => {
     for (const res of unavailableReservations) {
       const resStart = new Date(`${selectedDate}T${res.inicio.substring(0, 5)}:00`);
       const resEnd = new Date(`${selectedDate}T${res.fim.substring(0, 5)}:00`);
-      // Lógica ajustada: se o slot começa antes ou no EXATO momento que a reserva anterior termina, fica indisponível.
       if (slotStart.getTime() <= resEnd.getTime() && slotEnd.getTime() > resStart.getTime()) {
         return { isUnavailable: true, reservedBy: res.nome, reason: res.descricao };
       }
@@ -127,19 +126,40 @@ const App: React.FC = () => {
 
   const handleTimeClick = (slot: string) => {
     setError(null);
-    const { isUnavailable, reservedBy } = getUnavailableInfo(slot);
+    const { isUnavailable, reservedBy, reason } = getUnavailableInfo(slot);
+    
+    // Se estiver indisponível, mostra a mensagem solicitada
     if (isUnavailable) {
-      setError(`Indisponível: ${reservedBy || 'Ocupado'}.`);
+      const displayMsg = `Reservado para: ${reservedBy || 'Não informado'}${reason ? `\nmotivo: ${reason}` : ''}`;
+      setError(displayMsg);
       return; 
     }
+
     if (!selectedTimeRange || (selectedTimeRange.start && selectedTimeRange.end)) {
       setSelectedTimeRange({ start: slot, end: null });
     } else {
       const startTime = selectedTimeRange.start;
       const startIdx = allSlotsSorted.indexOf(startTime);
       const endIdx = allSlotsSorted.indexOf(slot);
-      if (endIdx > startIdx) setSelectedTimeRange({ start: startTime, end: slot });
-      else setSelectedTimeRange({ start: slot, end: null });
+      if (endIdx > startIdx) {
+        // Verificar se há conflitos no meio do período selecionado
+        let hasConflict = false;
+        for (let i = startIdx + 1; i <= endIdx; i++) {
+          if (getUnavailableInfo(allSlotsSorted[i]).isUnavailable) {
+            hasConflict = true;
+            break;
+          }
+        }
+        
+        if (hasConflict) {
+          setError("O período selecionado contém horários já reservados.");
+          return;
+        }
+        
+        setSelectedTimeRange({ start: startTime, end: slot });
+      } else {
+        setSelectedTimeRange({ start: slot, end: null });
+      }
     }
   };
 
@@ -290,8 +310,9 @@ const App: React.FC = () => {
                </div>
 
                {error && (
-                 <div className="mb-6 p-4 bg-red-900/30 border border-red-500/50 rounded-2xl flex items-center gap-3 text-red-200 text-sm">
-                    <AlertCircle className="w-5 h-5" /> {error}
+                 <div className="mb-6 p-4 bg-red-900/30 border border-red-500/50 rounded-2xl flex items-start gap-3 text-red-200 text-sm whitespace-pre-line shadow-lg animate-in slide-in-from-top-2">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" /> 
+                    <div className="flex-1">{error}</div>
                  </div>
                )}
 
@@ -304,18 +325,13 @@ const App: React.FC = () => {
                       </div>
                       <div className="grid grid-cols-4 gap-3">
                         {slots.map(slot => {
-                          const { isUnavailable, reservedBy, reason } = getUnavailableInfo(slot);
+                          const { isUnavailable } = getUnavailableInfo(slot);
                           const active = isSlotSelected(slot);
-                          const tooltipText = isUnavailable 
-                            ? `Reservado para: ${reservedBy}${reason ? `\nmotivo: ${reason}` : ''}` 
-                            : undefined;
 
                           return (
                             <button 
                               key={slot}
                               onClick={() => handleTimeClick(slot)}
-                              disabled={isUnavailable}
-                              title={tooltipText}
                               className={`py-4 rounded-2xl text-[15px] font-bold transition-all border ${active ? 'text-white border-transparent' : isUnavailable ? `bg-white/5 border-transparent opacity-20 cursor-not-allowed` : `${DARK_SURFACE} border-[${DARK_BORDER}] ${LIGHT_TEXT} hover:border-slate-500`}`}
                               style={{ backgroundColor: active ? BRAND_COLOR : undefined }}
                             >
