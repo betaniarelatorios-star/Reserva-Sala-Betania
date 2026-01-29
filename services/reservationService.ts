@@ -67,7 +67,8 @@ export class ReservationService {
       const checkStart = new Date(`2000-01-01T${start}:00`);
       const checkEnd = new Date(`2000-01-01T${end}:00`);
 
-      return checkStart.getTime() < resEnd.getTime() && checkEnd.getTime() > resStart.getTime();
+      // Lógica de conflito ajustada para ser inclusiva no fim da reserva (<= resEnd)
+      return checkStart.getTime() <= resEnd.getTime() && checkEnd.getTime() > resStart.getTime();
     });
 
     return conflict || null;

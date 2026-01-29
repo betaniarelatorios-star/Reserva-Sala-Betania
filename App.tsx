@@ -110,18 +110,19 @@ const App: React.FC = () => {
   const allSlotsSorted = useMemo(() => [...timeSlots.manha, ...timeSlots.tarde, ...timeSlots.noite], []);
 
   const getUnavailableInfo = (slot: string) => {
-    if (!selectedRoom || !selectedDate) return { isUnavailable: false, reservedBy: null };
+    if (!selectedRoom || !selectedDate) return { isUnavailable: false, reservedBy: null, reason: null };
     const slotStart = new Date(`${selectedDate}T${slot}:00`);
     const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000); 
 
     for (const res of unavailableReservations) {
       const resStart = new Date(`${selectedDate}T${res.inicio.substring(0, 5)}:00`);
       const resEnd = new Date(`${selectedDate}T${res.fim.substring(0, 5)}:00`);
-      if (slotStart.getTime() < resEnd.getTime() && slotEnd.getTime() > resStart.getTime()) {
-        return { isUnavailable: true, reservedBy: res.nome };
+      // Lógica ajustada: se o slot começa antes ou no EXATO momento que a reserva anterior termina, fica indisponível.
+      if (slotStart.getTime() <= resEnd.getTime() && slotEnd.getTime() > resStart.getTime()) {
+        return { isUnavailable: true, reservedBy: res.nome, reason: res.descricao };
       }
     }
-    return { isUnavailable: false, reservedBy: null };
+    return { isUnavailable: false, reservedBy: null, reason: null };
   };
 
   const handleTimeClick = (slot: string) => {
@@ -303,13 +304,18 @@ const App: React.FC = () => {
                       </div>
                       <div className="grid grid-cols-4 gap-3">
                         {slots.map(slot => {
-                          const { isUnavailable } = getUnavailableInfo(slot);
+                          const { isUnavailable, reservedBy, reason } = getUnavailableInfo(slot);
                           const active = isSlotSelected(slot);
+                          const tooltipText = isUnavailable 
+                            ? `Reservado para: ${reservedBy}${reason ? `\nmotivo: ${reason}` : ''}` 
+                            : undefined;
+
                           return (
                             <button 
                               key={slot}
                               onClick={() => handleTimeClick(slot)}
                               disabled={isUnavailable}
+                              title={tooltipText}
                               className={`py-4 rounded-2xl text-[15px] font-bold transition-all border ${active ? 'text-white border-transparent' : isUnavailable ? `bg-white/5 border-transparent opacity-20 cursor-not-allowed` : `${DARK_SURFACE} border-[${DARK_BORDER}] ${LIGHT_TEXT} hover:border-slate-500`}`}
                               style={{ backgroundColor: active ? BRAND_COLOR : undefined }}
                             >
@@ -372,9 +378,15 @@ const App: React.FC = () => {
           <div className={`${DARK_SURFACE} w-full max-w-sm rounded-[32px] shadow-2xl p-6 border ${DARK_BORDER}`}>
              <div className="flex items-center justify-between mb-6">
                <h3 className={`font-bold ${LIGHT_TEXT}`}>Selecione a Data</h3>
-               <button onClick={() => setIsDatePickerOpen(false)} className="p-2 text-slate-400"><X /></button>
+               <button onClick={() => setIsDatePickerOpen(false)} className="p-2 text-slate-400 hover:text-white transition-colors"><X /></button>
              </div>
-             <input type="date" value={selectedDate} onChange={(e) => { setSelectedDate(e.target.value); setIsDatePickerOpen(false); setSelectedTimeRange(null); }} className={`w-full ${DARK_BACKGROUND} border ${DARK_BORDER} rounded-2xl px-6 py-5 text-lg font-bold ${LIGHT_TEXT} uppercase`} />
+             <input 
+                type="date" 
+                value={selectedDate} 
+                onChange={(e) => { setSelectedDate(e.target.value); setIsDatePickerOpen(false); setSelectedTimeRange(null); }} 
+                className={`w-full bg-[#121212] border ${DARK_BORDER} rounded-2xl px-6 py-5 text-lg font-bold ${LIGHT_TEXT} uppercase focus:outline-none focus:border-[${BRAND_COLOR}] transition-colors`}
+                style={{ colorScheme: 'dark' }}
+             />
           </div>
         </div>
       )}

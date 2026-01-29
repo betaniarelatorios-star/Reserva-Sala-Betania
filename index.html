@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -9,10 +8,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
+        :root {
+          color-scheme: dark;
+        }
         body { 
           font-family: 'Inter', sans-serif; 
-          background-color: #1E1E1E; /* Dark mode background */
-          color: #FAFAFA; /* Light text for dark mode */
+          background-color: #0D0D0D; 
+          color: #FAFAFA;
           -webkit-tap-highlight-color: transparent;
         }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -34,6 +36,12 @@
         @keyframes slideInFromBottom {
           from { transform: translateY(20px); opacity: 0; }
           to { transform: translateY(0); opacity: 1; }
+        }
+        /* Torna o ícone de calendário azul (#01AAFF) */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(50%) sepia(99%) saturate(2361%) hue-rotate(182deg) brightness(101%) contrast(108%);
+            cursor: pointer;
+            padding: 5px;
         }
     </style>
     <script>
