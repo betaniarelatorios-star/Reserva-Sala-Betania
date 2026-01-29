@@ -114,9 +114,9 @@ const App: React.FC = () => {
   }, [selectedRoom, selectedDate, step]);
 
   const timeSlots = {
-    manha: ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30'],
+    manha: ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30'],
     tarde: ['13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'],
-    noite: ['18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00']
+    noite: ['18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30', '22:00', '22:30', '23:00', '23:30', '00:00', '00:30', '01:00', '01:30', '02:00', '02:30', '03:00']
   };
 
   const allSlotsSorted = useMemo(() => [...timeSlots.manha, ...timeSlots.tarde, ...timeSlots.noite], []);
@@ -213,6 +213,16 @@ const App: React.FC = () => {
     }
   };
 
+  const getCalendarLink = () => {
+    if (!lastReservation || !selectedRoom) return '';
+    const date = lastReservation.data.replace(/-/g, '');
+    const start = lastReservation.inicio.replace(/:/g, '').substring(0, 4) + '00';
+    const end = lastReservation.fim.replace(/:/g, '').substring(0, 4) + '00';
+    const title = encodeURIComponent(`Reserva ${selectedRoom.name}`);
+    const details = encodeURIComponent(`Responsável: ${lastReservation.nome}${lastReservation.descricao ? `\nMotivo: ${lastReservation.descricao}` : ''}`);
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${date}T${start}/${date}T${end}&details=${details}`;
+  };
+
   const renderHeader = (title: string, subtitle: string, stepNum: number) => (
     <div className="px-6 pt-10 pb-6">
       <div className="flex items-center justify-between mb-8">
@@ -245,7 +255,7 @@ const App: React.FC = () => {
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto scrollbar-hide pb-32">
         {step === 'rooms' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {renderHeader('Selecione a Sala', 'Escolha o espaço perfeito para sua reunião.', 1)}
+            {renderHeader('Selecione a Sala', 'Escolha o espaço para realizar a sua reunião.', 1)}
             <div className="px-6 space-y-4">
               {loadingRooms ? (
                 <div className="flex flex-col items-center py-20 gap-4">
@@ -268,8 +278,8 @@ const App: React.FC = () => {
                         <Users className="w-3.5 h-3.5" />
                         <span>{room.capacity} pessoas</span>
                       </div>
-                      <div className="flex gap-2">
-                        {room.tags?.slice(0, 2).map(tag => (
+                      <div className="flex flex-wrap gap-2">
+                        {room.tags?.slice(0, 4).map(tag => (
                           <span key={tag} className={`px-2.5 py-1 rounded-lg text-[9px] font-black ${LIGHT_GRAY_BG} ${MEDIUM_TEXT} uppercase tracking-tight`}>{tag}</span>
                         ))}
                       </div>
@@ -421,7 +431,7 @@ const App: React.FC = () => {
                       type="text" 
                       value={userName} 
                       onChange={(e) => setUserName(e.target.value)} 
-                      placeholder="Quem irá utilizar a sala?" 
+                      placeholder="Seu nome" 
                       className={`w-full bg-[#121212] border ${DARK_BORDER} rounded-2xl px-6 py-5 pl-14 text-[15px] font-medium focus:outline-none focus:border-[${BRAND_COLOR}] focus:ring-1 focus:ring-[${BRAND_COLOR}]/20 ${LIGHT_TEXT} placeholder:text-slate-700 shadow-xl transition-all`} 
                     />
                   </div>
@@ -437,7 +447,7 @@ const App: React.FC = () => {
                     <textarea 
                       value={purpose} 
                       onChange={(e) => setPurpose(e.target.value)} 
-                      placeholder="Ex: Alinhamento de Metas Q2" 
+                      placeholder="Envolva-se do ministério Pastoral" 
                       className={`w-full bg-[#121212] border ${DARK_BORDER} rounded-2xl px-6 py-5 pl-14 text-[15px] font-medium focus:outline-none focus:border-[${BRAND_COLOR}] focus:ring-1 focus:ring-[${BRAND_COLOR}]/20 ${LIGHT_TEXT} placeholder:text-slate-700 shadow-xl min-h-[140px] transition-all resize-none`} 
                     />
                   </div>
@@ -486,16 +496,14 @@ const App: React.FC = () => {
              </div>
 
              <div className="w-full space-y-4">
-                {lastReservation?.link_agenda && (
-                  <a 
-                    href={lastReservation.link_agenda} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="w-full py-5 bg-white text-black rounded-[24px] font-black text-[15px] uppercase tracking-[0.1em] flex items-center justify-center gap-3 transition-all active:scale-[0.98] hover:bg-slate-100 shadow-[0_20px_40px_rgba(255,255,255,0.15)] group"
-                  >
-                    <CalendarPlus className="w-6 h-6 group-hover:scale-110 transition-transform" /> Coloque na sua agenda
-                  </a>
-                )}
+                <a 
+                  href={getCalendarLink()} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-full py-5 bg-white text-black rounded-[24px] font-black text-[15px] uppercase tracking-[0.1em] flex items-center justify-center gap-3 transition-all active:scale-[0.98] hover:bg-slate-100 shadow-[0_20px_40px_rgba(255,255,255,0.15)] group"
+                >
+                  <CalendarPlus className="w-6 h-6 group-hover:scale-110 transition-transform" /> Coloque na sua agenda
+                </a>
                 <button 
                   onClick={() => { setStep('rooms'); setSelectedRoom(null); setSelectedTimeRange(null); setUserName(''); setPurpose(''); }} 
                   className={`w-full py-5 ${DARK_SURFACE} border ${DARK_BORDER} ${LIGHT_TEXT} rounded-[24px] font-black text-[14px] uppercase tracking-widest shadow-xl active:scale-95 transition-all hover:bg-white/5`}

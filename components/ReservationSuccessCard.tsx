@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import { CheckCircle2, MapPin, User, Calendar, Clock, CalendarClock, ExternalLink, CalendarPlus } from 'lucide-react';
 import { Reservation } from '../types.ts';
@@ -14,15 +13,18 @@ const ReservationSuccessCard: React.FC<ReservationSuccessCardProps> = ({ reserva
   const formatTime = (time: string) => time ? time.split(':').slice(0, 2).join(':') : '--:--';
 
   const handleAddToCalendar = () => {
-    if (reservation?.link_agenda) {
-      window.open(reservation.link_agenda, '_blank', 'noopener,noreferrer');
+    if (reservation) {
+      const date = reservation.data.replace(/-/g, '');
+      const start = reservation.inicio.replace(/:/g, '').substring(0, 4) + '00';
+      const end = reservation.fim.replace(/:/g, '').substring(0, 4) + '00';
+      const title = encodeURIComponent(`Reserva ${reservation.sala}`); // 'sala' aqui é o nome no contexto do componente de sucesso
+      const details = encodeURIComponent(`Responsável: ${reservation.nome}${reservation.descricao ? `\nMotivo: ${reservation.descricao}` : ''}`);
+      const link = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${date}T${start}/${date}T${end}&details=${details}`;
+      window.open(link, '_blank', 'noopener,noreferrer');
     }
   };
 
-  const hasCalendarLink = reservation?.link_agenda && reservation.link_agenda.trim().length > 0;
   const BRAND_COLOR = "#01AAFF";
-  // Fix: Define DARK_BACKGROUND for consistent styling
-  const DARK_BACKGROUND = "#1E1E1E"; // Main background
   const DARK_SURFACE = "#2C2C2C"; // For cards and containers
   const DARK_BORDER = "#3A3A3A"; // For subtle borders
   const LIGHT_TEXT = "#FAFAFA"; // Main text
@@ -92,21 +94,19 @@ const ReservationSuccessCard: React.FC<ReservationSuccessCardProps> = ({ reserva
           </div>
         </div>
         
-        {hasCalendarLink && (
-          <button 
-            onClick={handleAddToCalendar}
-            className="w-full flex items-center justify-center gap-2.5 py-4 px-4 text-white rounded-2xl transition-all active:scale-[0.98] shadow-lg group"
-            style={{ backgroundColor: BRAND_COLOR }}
-          >
-            <CalendarPlus className="w-4 h-4 text-white/80" />
-            <span className="text-[13px] font-black uppercase tracking-tight">Gravar na minha agenda</span>
-            <ExternalLink className="w-3 h-3 text-white/40" />
-          </button>
-        )}
+        <button 
+          onClick={handleAddToCalendar}
+          className="w-full flex items-center justify-center gap-2.5 py-4 px-4 text-white rounded-2xl transition-all active:scale-[0.98] shadow-lg group"
+          style={{ backgroundColor: BRAND_COLOR }}
+        >
+          <CalendarPlus className="w-4 h-4 text-white/80" />
+          <span className="text-[13px] font-black uppercase tracking-tight">Gravar na minha agenda</span>
+          <ExternalLink className="w-3 h-3 text-white/40" />
+        </button>
 
         <button 
           onClick={() => onReschedule?.(reservation)}
-          className={`w-full flex items-center justify-center gap-2 py-3.5 px-4 ${DARK_BACKGROUND} border ${DARK_BORDER} rounded-2xl ${MEDIUM_TEXT} hover:bg-[${LIGHT_GRAY_BG}] transition-all active:scale-[0.98]`}
+          className={`w-full flex items-center justify-center gap-2 py-3.5 px-4 ${DARK_SURFACE} border ${DARK_BORDER} rounded-2xl ${MEDIUM_TEXT} hover:bg-[${LIGHT_GRAY_BG}] transition-all active:scale-[0.98]`}
         >
           <CalendarClock className={`w-4 h-4 ${MEDIUM_TEXT}`} />
           <span className="text-[12px] font-bold uppercase tracking-tight">Remarcar Reserva</span>

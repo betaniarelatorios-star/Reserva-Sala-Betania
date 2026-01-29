@@ -8,9 +8,9 @@ export const ROOMS: Room[] = [
   { 
     id: 'unioes', // Sincronizado com o banco
     name: 'Sala de Reuniões', 
-    capacity: 10, 
-    description: 'Ideal para 10 pessoas. Equipamento de vídeo completo e quadro branco.',
-    tags: ['AC', 'TV'],
+    capacity: 15, 
+    description: 'Ideal para 15 pessoas. Equipamento de vídeo completo e quadro branco.',
+    tags: ['Ar-condicionado', 'TV'],
     iconColor: '#3B82F6',
     image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=300&q=80'
   },
@@ -19,7 +19,7 @@ export const ROOMS: Room[] = [
     name: 'Sala Aconselhamento', 
     capacity: 3, 
     description: 'Espaço reservado e confortável para até 3 pessoas. Silencioso.',
-    tags: ['PRIVADO'],
+    tags: ['PRIVADO', 'Ar-condicionado'],
     iconColor: '#A855F7',
     image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=300&q=80'
   },
@@ -28,25 +28,25 @@ export const ROOMS: Room[] = [
     name: 'Sala Aconselhamento 1', 
     capacity: 3, 
     description: 'Ambiente climatizado com poltronas ergonômicas e iluminação dimerizável.',
-    tags: ['PREMIUM'],
+    tags: ['PREMIUM', 'Ar-condicionado'],
     iconColor: '#14B8A6',
     image: 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=300&q=80'
   },
   { 
     id: 'semib', 
     name: 'Sala Semib', 
-    capacity: 6, 
-    description: 'Espaço versátil para pequenos grupos e workshops rápidos (até 6 pessoas).',
-    tags: ['FLEX'],
+    capacity: 25, 
+    description: 'Espaço versátil e amplo para workshops e reuniões grandes (até 25 pessoas).',
+    tags: ['Ar-condicionado', 'TV', 'Quadro branco'],
     iconColor: '#F97316',
     image: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=300&q=80'
   },
   { 
     id: 'een', // Sincronizado com o banco
     name: 'Sala Betageen', 
-    capacity: 8, 
-    description: 'Ideal para brainstormings e dinâmicas criativas com mobiliário modular.',
-    tags: ['CRIATIVO'],
+    capacity: 25, 
+    description: 'Espaço amplo para brainstormings e dinâmicas criativas (até 25 pessoas).',
+    tags: ['Ar-condicionado', 'TV', 'Quadro branco'],
     iconColor: '#22C55E',
     image: 'https://images.unsplash.com/photo-1557425955-df376b5903c8?auto=format&fit=crop&w=300&q=80'
   },
