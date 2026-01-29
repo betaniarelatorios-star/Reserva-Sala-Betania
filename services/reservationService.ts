@@ -34,7 +34,6 @@ export class ReservationService {
     return ROOMS;
   }
 
-  // Fix: Implement getAvailableRooms to fetch rooms that have no conflicts for a given period
   static async getAvailableRooms(date: string, start: string, end: string): Promise<Room[]> {
     const allRooms = await this.getRooms();
     const availableRooms: Room[] = [];
@@ -49,8 +48,13 @@ export class ReservationService {
     return availableRooms;
   }
 
+  static async getReservationById(id: string | number): Promise<Reservation | null> {
+    const query = `reservas?id=eq.${id}&select=*`;
+    const result: Reservation[] = await this.fetchSupabase('GET', query);
+    return result.length > 0 ? result[0] : null;
+  }
+
   static async getReservationsByRoomAndDate(roomId: string, date: string): Promise<Reservation[]> {
-    // Busca exata pelo ID da sala na coluna 'sala'
     const query = `reservas?sala=eq.${encodeURIComponent(roomId)}&data=eq.${date}`;
     const reservations: Reservation[] = await this.fetchSupabase('GET', query);
     return reservations;
@@ -61,13 +65,10 @@ export class ReservationService {
     const existing: Reservation[] = await this.fetchSupabase('GET', query);
 
     const conflict = existing.find(res => {
-      // res.inicio/fim vem como HH:mm:ss, checkStart/End vem como HH:mm
       const resStart = new Date(`2000-01-01T${res.inicio}`);
       const resEnd = new Date(`2000-01-01T${res.fim}`);
       const checkStart = new Date(`2000-01-01T${start}:00`);
       const checkEnd = new Date(`2000-01-01T${end}:00`);
-
-      // Lógica de conflito ajustada para ser inclusiva no fim da reserva (<= resEnd)
       return checkStart.getTime() <= resEnd.getTime() && checkEnd.getTime() > resStart.getTime();
     });
 

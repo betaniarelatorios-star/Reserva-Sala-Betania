@@ -10,7 +10,12 @@ import {
   Users,
   Loader2,
   AlertCircle,
-  X
+  X,
+  User,
+  FileText,
+  MapPin,
+  CalendarDays,
+  CalendarPlus
 } from 'lucide-react';
 import { Room, Reservation } from './types.ts';
 import { ReservationService } from './services/reservationService.ts';
@@ -33,14 +38,13 @@ const App: React.FC = () => {
   const dateStripRef = useRef<HTMLDivElement>(null);
   const [unavailableReservations, setUnavailableReservations] = useState<Reservation[]>([]);
 
-  // Paleta de cores refinada para contraste máximo
   const BRAND_COLOR = "#01AAFF";
-  const DARK_BACKGROUND = "#0D0D0D"; // Fundo mais profundo
-  const DARK_SURFACE = "#1A1A1A";    // Cards com elevação sutil
-  const DARK_BORDER = "#2E2E2E";     // Bordas mais definidas
-  const LIGHT_TEXT = "#FFFFFF";      // Texto primário puro
-  const MEDIUM_TEXT = "#A3A3A3";     // Texto secundário nítido
-  const LIGHT_GRAY_BG = "#262626";   // Fundos de destaque internos
+  const DARK_BACKGROUND = "#0D0D0D";
+  const DARK_SURFACE = "#1A1A1A";
+  const DARK_BORDER = "#2E2E2E";
+  const LIGHT_TEXT = "#FFFFFF";
+  const MEDIUM_TEXT = "#A3A3A3";
+  const LIGHT_GRAY_BG = "#262626";
 
   const fetchRooms = async () => {
     try {
@@ -127,14 +131,11 @@ const App: React.FC = () => {
   const handleTimeClick = (slot: string) => {
     setError(null);
     const { isUnavailable, reservedBy, reason } = getUnavailableInfo(slot);
-    
-    // Se estiver indisponível, mostra a mensagem solicitada
     if (isUnavailable) {
       const displayMsg = `Reservado para: ${reservedBy || 'Não informado'}${reason ? `\nmotivo: ${reason}` : ''}`;
       setError(displayMsg);
       return; 
     }
-
     if (!selectedTimeRange || (selectedTimeRange.start && selectedTimeRange.end)) {
       setSelectedTimeRange({ start: slot, end: null });
     } else {
@@ -142,7 +143,6 @@ const App: React.FC = () => {
       const startIdx = allSlotsSorted.indexOf(startTime);
       const endIdx = allSlotsSorted.indexOf(slot);
       if (endIdx > startIdx) {
-        // Verificar se há conflitos no meio do período selecionado
         let hasConflict = false;
         for (let i = startIdx + 1; i <= endIdx; i++) {
           if (getUnavailableInfo(allSlotsSorted[i]).isUnavailable) {
@@ -150,12 +150,10 @@ const App: React.FC = () => {
             break;
           }
         }
-        
         if (hasConflict) {
           setError("O período selecionado contém horários já reservados.");
           return;
         }
-        
         setSelectedTimeRange({ start: startTime, end: slot });
       } else {
         setSelectedTimeRange({ start: slot, end: null });
@@ -182,7 +180,7 @@ const App: React.FC = () => {
     }
     setLoading(true);
     try {
-      const res = await ReservationService.createReservation({
+      let res = await ReservationService.createReservation({
         nome: userName,
         sala: selectedRoom.id,
         data: selectedDate,
@@ -190,6 +188,14 @@ const App: React.FC = () => {
         fim: selectedTimeRange.end,
         descricao: purpose || "Reserva de sala"
       });
+      
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      
+      if (res && res.id) {
+        const updatedRes = await ReservationService.getReservationById(res.id);
+        if (updatedRes) res = updatedRes;
+      }
+      
       setLastReservation(res);
       setStep('success');
     } catch (e) {
@@ -327,7 +333,6 @@ const App: React.FC = () => {
                         {slots.map(slot => {
                           const { isUnavailable } = getUnavailableInfo(slot);
                           const active = isSlotSelected(slot);
-
                           return (
                             <button 
                               key={slot}
@@ -350,41 +355,146 @@ const App: React.FC = () => {
         {step === 'confirm' && (
           <div className="animate-in fade-in slide-in-from-right-4 duration-500">
             {renderHeader('Confirmação', 'Confira os detalhes da sua reserva.', 3)}
-            <div className="px-6 space-y-6">
-              <div className={`${DARK_SURFACE} rounded-[32px] p-6 space-y-8 border ${DARK_BORDER} shadow-xl`}>
-                <div className="flex items-center gap-4">
-                  <div className={`w-16 h-16 rounded-2xl overflow-hidden bg-black/40 border ${DARK_BORDER}`}>
-                    <img src={selectedRoom?.image} className="w-full h-full object-cover" alt="" />
-                  </div>
-                  <h3 className={`text-xl font-bold ${LIGHT_TEXT}`}>{selectedRoom?.name}</h3>
+            <div className="px-6 space-y-8">
+              <div className={`${DARK_SURFACE} rounded-[32px] overflow-hidden border ${DARK_BORDER} shadow-2xl`}>
+                <div className="px-6 py-4 flex items-center justify-between border-b border-white/5 bg-white/5">
+                   <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500">Revisão do Pedido</span>
+                   </div>
+                   <MapPin className="w-4 h-4 text-slate-600" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className={`${LIGHT_GRAY_BG} p-4 rounded-2xl border ${DARK_BORDER}`}>
-                    <p className={`text-[10px] font-bold ${MEDIUM_TEXT} uppercase mb-1`}>Data</p>
-                    <p className={`text-[14px] font-bold ${LIGHT_TEXT}`}>{new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
+                <div className="p-6 space-y-6">
+                  <div className="flex items-center gap-5">
+                    <div className={`w-20 h-20 rounded-[22px] overflow-hidden bg-black/40 border ${DARK_BORDER} shadow-inner`}>
+                      <img src={selectedRoom?.image} className="w-full h-full object-cover" alt="" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className={`text-xl font-black ${LIGHT_TEXT} leading-tight mb-1`}>{selectedRoom?.name}</h3>
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                        <Users className="w-3.5 h-3.5" />
+                        <span>Capacidade para {selectedRoom?.capacity} pessoas</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className={`${LIGHT_GRAY_BG} p-4 rounded-2xl border ${DARK_BORDER}`}>
-                    <p className={`text-[10px] font-bold ${MEDIUM_TEXT} uppercase mb-1`}>Horário</p>
-                    <p className={`text-[14px] font-bold ${LIGHT_TEXT}`}>{selectedTimeRange?.start} - {selectedTimeRange?.end}</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className={`${LIGHT_GRAY_BG} p-4 rounded-2xl border ${DARK_BORDER} flex flex-col gap-1`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <CalendarDays className="w-3.5 h-3.5 text-slate-500" />
+                        <span className={`text-[10px] font-black ${MEDIUM_TEXT} uppercase tracking-widest`}>Data</span>
+                      </div>
+                      <p className={`text-[15px] font-bold ${LIGHT_TEXT}`}>
+                        {new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                      </p>
+                    </div>
+                    <div className={`${LIGHT_GRAY_BG} p-4 rounded-2xl border ${DARK_BORDER} flex flex-col gap-1`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Clock className="w-3.5 h-3.5 text-slate-500" />
+                        <span className={`text-[10px] font-black ${MEDIUM_TEXT} uppercase tracking-widest`}>Horário</span>
+                      </div>
+                      <p className={`text-[15px] font-bold ${LIGHT_TEXT}`}>
+                        {selectedTimeRange?.start} — {selectedTimeRange?.end}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="space-y-4">
-                <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} placeholder="Responsável" className={`w-full ${DARK_SURFACE} border ${DARK_BORDER} rounded-2xl px-6 py-5 text-sm focus:outline-none focus:border-[${BRAND_COLOR}] ${LIGHT_TEXT} placeholder:text-slate-600 shadow-xl`} />
-                <textarea value={purpose} onChange={(e) => setPurpose(e.target.value)} placeholder="Motivo (Opcional)" className={`w-full ${DARK_SURFACE} border ${DARK_BORDER} rounded-2xl px-6 py-5 text-sm focus:outline-none focus:border-[${BRAND_COLOR}] ${LIGHT_TEXT} placeholder:text-slate-600 shadow-xl min-h-[100px]`} />
+
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.1em] text-slate-500 ml-1">
+                    <User className="w-3.5 h-3.5" /> Responsável pela Reserva
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                      <User className={`w-5 h-5 ${MEDIUM_TEXT} transition-colors`} />
+                    </div>
+                    <input 
+                      type="text" 
+                      value={userName} 
+                      onChange={(e) => setUserName(e.target.value)} 
+                      placeholder="Quem irá utilizar a sala?" 
+                      className={`w-full bg-[#121212] border ${DARK_BORDER} rounded-2xl px-6 py-5 pl-14 text-[15px] font-medium focus:outline-none focus:border-[${BRAND_COLOR}] focus:ring-1 focus:ring-[${BRAND_COLOR}]/20 ${LIGHT_TEXT} placeholder:text-slate-700 shadow-xl transition-all`} 
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.1em] text-slate-500 ml-1">
+                    <FileText className="w-3.5 h-3.5" /> Motivo da Reunião (Opcional)
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute top-5 left-5 pointer-events-none">
+                      <FileText className={`w-5 h-5 ${MEDIUM_TEXT} transition-colors`} />
+                    </div>
+                    <textarea 
+                      value={purpose} 
+                      onChange={(e) => setPurpose(e.target.value)} 
+                      placeholder="Ex: Alinhamento de Metas Q2" 
+                      className={`w-full bg-[#121212] border ${DARK_BORDER} rounded-2xl px-6 py-5 pl-14 text-[15px] font-medium focus:outline-none focus:border-[${BRAND_COLOR}] focus:ring-1 focus:ring-[${BRAND_COLOR}]/20 ${LIGHT_TEXT} placeholder:text-slate-700 shadow-xl min-h-[140px] transition-all resize-none`} 
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         )}
 
         {step === 'success' && (
-          <div className="flex flex-col items-center justify-center px-8 text-center pt-20 animate-in zoom-in duration-500">
-             <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center mb-8 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
+          <div className="flex flex-col items-center px-6 pt-16 animate-in zoom-in duration-500">
+             <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center mb-8 shadow-[0_0_50px_rgba(16,185,129,0.3)] animate-pulse">
                 <CheckCircle2 className="w-12 h-12 text-white" />
              </div>
-             <h2 className={`text-3xl font-black ${LIGHT_TEXT} mb-4 uppercase`}>Tudo certo!</h2>
-             <p className={`text-base mb-12 ${MEDIUM_TEXT}`}>Sua reserva na <b>{selectedRoom?.name}</b> foi confirmada com sucesso.</p>
-             <button onClick={() => { setStep('rooms'); setSelectedRoom(null); setSelectedTimeRange(null); }} className={`w-full py-5 ${DARK_SURFACE} border ${DARK_BORDER} ${LIGHT_TEXT} rounded-2xl font-bold uppercase tracking-widest shadow-xl active:scale-95`}>Voltar ao Início</button>
+             <h2 className={`text-4xl font-black ${LIGHT_TEXT} mb-4 uppercase tracking-tighter`}>Tudo certo!</h2>
+             <p className={`text-[13px] mb-12 ${MEDIUM_TEXT} text-center leading-relaxed`}>Sua reserva na <b>{selectedRoom?.name}</b> foi concluída com sucesso.</p>
+
+             {/* Ticket de Confirmação Refinado */}
+             <div className={`w-full ${DARK_SURFACE} border ${DARK_BORDER} rounded-[32px] p-7 mb-10 shadow-[0_20px_60px_rgba(0,0,0,0.5)] relative overflow-hidden`}>
+                <div className="absolute top-0 right-0 p-4 opacity-5">
+                   <CalendarIcon className="w-32 h-32 -rotate-12" />
+                </div>
+                <div className="flex justify-between items-center pb-6 border-b border-white/5 mb-6">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Data</span>
+                    <span className="text-xl font-extrabold text-white">
+                      {lastReservation?.data && new Date(lastReservation.data + 'T00:00:00').toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1 items-end">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Horário</span>
+                    <span className="text-xl font-extrabold text-white">
+                      {lastReservation?.inicio?.substring(0, 5)} - {lastReservation?.fim?.substring(0, 5)}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                   <div className="w-12 h-12 rounded-2xl bg-slate-800/50 border border-white/5 flex items-center justify-center shadow-inner">
+                      <User className="w-6 h-6 text-slate-400" />
+                   </div>
+                   <div className="flex flex-col">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Responsável</span>
+                      <span className="text-[16px] font-bold text-white tracking-tight">{lastReservation?.nome}</span>
+                   </div>
+                </div>
+             </div>
+
+             <div className="w-full space-y-4">
+                {lastReservation?.link_agenda && (
+                  <a 
+                    href={lastReservation.link_agenda} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="w-full py-5 bg-white text-black rounded-[24px] font-black text-[15px] uppercase tracking-[0.1em] flex items-center justify-center gap-3 transition-all active:scale-[0.98] hover:bg-slate-100 shadow-[0_20px_40px_rgba(255,255,255,0.15)] group"
+                  >
+                    <CalendarPlus className="w-6 h-6 group-hover:scale-110 transition-transform" /> Coloque na sua agenda
+                  </a>
+                )}
+                <button 
+                  onClick={() => { setStep('rooms'); setSelectedRoom(null); setSelectedTimeRange(null); setUserName(''); setPurpose(''); }} 
+                  className={`w-full py-5 ${DARK_SURFACE} border ${DARK_BORDER} ${LIGHT_TEXT} rounded-[24px] font-black text-[14px] uppercase tracking-widest shadow-xl active:scale-95 transition-all hover:bg-white/5`}
+                >
+                  Voltar ao Início
+                </button>
+             </div>
           </div>
         )}
       </div>
