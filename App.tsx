@@ -36,6 +36,7 @@ const App: React.FC = () => {
   const [lastReservation, setLastReservation] = useState<Reservation | null>(null);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const dateStripRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [unavailableReservations, setUnavailableReservations] = useState<Reservation[]>([]);
 
   const BRAND_COLOR = "#01AAFF";
@@ -45,6 +46,13 @@ const App: React.FC = () => {
   const LIGHT_TEXT = "#FFFFFF";
   const MEDIUM_TEXT = "#A3A3A3";
   const LIGHT_GRAY_BG = "#262626";
+
+  // Garante que o scroll volte para o topo ao mudar de etapa
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [step]);
 
   const fetchRooms = async () => {
     try {
@@ -234,7 +242,7 @@ const App: React.FC = () => {
 
   return (
     <div className={`flex flex-col h-screen max-w-2xl mx-auto ${DARK_BACKGROUND} ${LIGHT_TEXT} overflow-hidden`}>
-      <div className="flex-1 overflow-y-auto scrollbar-hide pb-32">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto scrollbar-hide pb-32">
         {step === 'rooms' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             {renderHeader('Selecione a Sala', 'Escolha o espaço perfeito para sua reunião.', 1)}
